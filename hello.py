@@ -3,9 +3,10 @@
 from flask import Flask, render_template
 app = Flask(__name__)
 
-@app.route('/')       #使用程序实例提供的app.route修饰器，把修饰的函数注册成路由
-def index():          #index注册成根路由的处理程序，这个函数的返回值叫做响应。
-    return render_template('index.html')  #reder_template 函数 第一个参数：模板的文件名 随后的参数为键值对。
+@app.route('/')       #使用的app.route修饰器，把修饰的函数注册成路由
+def index():          #ind程序实例提供ex注册成根路由的处理程序，这个函数的返回值叫做响应。
+    L='<h1>hello</h1>'
+    return render_template('index.html',L=L)  #reder_template 函数 第一个参数：模板的文件名 随后的参数为键值对。
 
 
 @app.route('/user/<name>')    #动态路由　name参数动态生成响应
