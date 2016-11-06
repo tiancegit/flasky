@@ -1,4 +1,4 @@
-#jinja2
+##jinja2
 
 jinja2能识别所有类型的值，甚至是一些复杂的类型，例如列表，字典，对象。
 在模板中使用变量的部分示例如下：
@@ -35,3 +35,39 @@ jinja2会渲染成 <h1>Hello world</h1>, 而不是显示为标题。浏览器会
 ```
 **千万不要在不可信的值上使用safe过滤器，例如用户在表单中输入的文本。**
 
+###jinja 提供了多种控制结构哦，可以用来改变模板的渲染流程。
+
+####如何在模板中使用条件控制语句：
+
+```html
+{% if user %}
+    Hello, {{ user }}!
+{% else %}
+    Hello,Stranger!
+{% endif %}
+```
+
+####另一种常见需求就是在模板中渲染一组元素，如何使用for循环实现：
+
+```html
+<ul>
+    {% for comment in comments %}
+        <li>{{ comment }}</li>
+    {% endfor %}
+</ul>
+```
+
+####jinja2 支持宏，宏类似python代码中的函数，例如：
+```html
+{% macro render_comment(comment) %}
+    <li>{{ comment }}</li>
+{% endmacro %}
+
+<ul>
+    {% for comment in comments %}
+        {{ render_comment(comment) }}
+    {% endfor %}
+</ul>
+```
+
+为了可以重复使用宏，可以保存为单独的文件，然后在需要的模板中导入：

@@ -42,7 +42,7 @@ def index():
 
 
 @app.route('/red')
-def reb():
+def red():
     return redirect('http://www.zhihu.com')   # 会直接重定向到字符串的网址中去，尚未知能否站内重定向或者重定向到错误页面去，比如404页面
 
 
