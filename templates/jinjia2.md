@@ -124,7 +124,20 @@ extends 指令声明了这个模板衍生自base.html.在extend指令之后,基�
 
 ####使用Flask-Bootstrap集成Twitter Bootstrap
 
+Bootstrap是客户端框架.因此并不会涉及服务器.服务器要做的只是提供引用了Bootstrap  
+层叠样式表(CSS)和JavaScript文件的HTML响应.并在html,CSS和JavaScript代码中实例化  
+所需组件.
 
+使用 Flask-Bootstrap的Flask扩展.简化集成的过程. Flask-Bootstrap使用 pip 安装:
+
+(venv) $ pip install Flask-bootstrap
+
+Flask 扩展一般都在创建程序实例是初始化.下面的是初始化方法:  
+```python
+from flask.ext.bootstrap import Bootstrap  #这个是0.10的语法
+#...    #Flask 0.11.1的语法是 :  from flask_bootstrap import Bootstrap
+bootstrap = Bootstrap(app)
+```
 
 
 
