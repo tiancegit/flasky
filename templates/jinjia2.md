@@ -71,3 +71,60 @@ jinja2会渲染成 <h1>Hello world</h1>, 而不是显示为标题。浏览器会
 ```
 
 为了可以重复使用宏，可以保存为单独的文件，然后在需要的模板中导入：
+```
+{% import 'macros.html' as macros %}
+<ul>
+    {% for comment in comments %}
+        {{ macros.render_comment(comment) }}
+    {% endfor %}
+</ul>
+```
+
+
+需要在多处重复使用的模板代码片段可以写入单独的文件,再包含在所有模板中,以避免重复.
+
+    {% include 'common.html' %}
+
+####模板继承
+
+另一种重复使用代码的强大方式就是模板继承,它类似于Python代码中的类继承.  
+首先,创建一个名为base.html的基模板:
+```html
+<html>
+<head>
+    {% block head %}
+        <title>{% block title %}{% endblock %} - My Application</title>
+    {% endblock %}
+</head>
+<body>
+{% block body %}
+{% endblock %}
+</body>
+</html>
+```
+
+block 标签定义的元素可以在衍生模板中修改,在本例中,定义了名为head,title和body的块.  
+注意,title 包含在head块中.下面的实例就是基模板的衍生模板.
+```html
+{% extends 'base.html' %}
+{% block title %}Index{% endblock %}
+{% block head %}
+    {{ super() }}
+    <style>
+    </style>
+{% endblock %}
+{% block body %}
+<h1>Hello,world!</h1>
+{% endblock %}
+```
+
+extends 指令声明了这个模板衍生自base.html.在extend指令之后,基模板中的三个块被重定义.  
+模板引擎会将其插入适应的位置,注意新定义的head块,在基模板中其内容不是空的.  
+所以使用super()来获取原来的内容.
+
+####使用Flask-Bootstrap集成Twitter Bootstrap
+
+
+
+
+

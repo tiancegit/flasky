@@ -1,5 +1,5 @@
 #file name
 *.pyc
-venv
+venvs
 a.md
 .idea
