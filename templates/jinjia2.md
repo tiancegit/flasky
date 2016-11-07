@@ -223,12 +223,39 @@ scripts         | 文档底部的JavaScript声明
 (个人理解,要先用super()函数来获取原来基模板的style和JavaScript文件,再在后面添加新内容.)
 
 
+####自定义错误页面
+如果在浏览器的地址栏输入了不可用的路由,会显示一个状态码为404的错误页面.  
+现在这个页面太简陋了,样式和使用了Bootstrap的页面不一致.
 
+像常规路由那样,Flask允许程序使用基于模板的自定义错误页面.常见的错误代码有两个:
+404,客户端请求未知页面或者路由时显示.
+500,有未处理的异常时显示.
+为这两个错误代码指定自定义处理页面的方式如下:
+```python
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template('404.html'), 404
 
+@app.errorhandler(500)
+def internal_server_error(e):
+    return render_template('500.html'), 500
+```
 
+和视图函数一样,错误处理程序也会返回响应.它们还返回与该错误对应的数字状态码.  
+错误处理程序中引用的模板也要编写,这些模板应该和常规的页面使用一样的布局,  
+因此要有一个导航条和显示错误信息的页面头部.
 
+jinja2的继承机制可以帮助我们做到这一点.Flask-Bootstrap提供了一个具有页面基本布局的基模板.
+其中包含导航条,同样,程序可以定义一个具有更完整页面布局的基模板,其中包含导航条,  
+而页面内容则可以留到了衍生模板中定义.
 
+下面的例子展示了templates/base.html的内容.这是一个继承自Bootstrap/base.html的新模板.  
+其中定义了导航条.这个模板本身可以作为别的模板的基模板.例如404.html,500.html,user.html
 
+templates/base.html:
+
+```
+```
 
 
 
