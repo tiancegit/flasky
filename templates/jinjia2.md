@@ -139,5 +139,99 @@ from flask.ext.bootstrap import Bootstrap  #这个是0.10的语法
 bootstrap = Bootstrap(app)
 ```
 
+初始化Flask-Bootstrap之后,就可以在程序中使用一个包含所有Bootstrap文件的基模板.  
+这个基模版利用了jinja2的模板继承机制.让程序可以扩展为一个具有基本页面结构的基模板,  
+其中就有用来引入Bootstrap元素.  
+示例是把user.html改写成衍生模板后的新版本.
+```html
+{% extends "bootstrap/base.html" %}
+
+{% block title %}Flasky{% endblock %}
+
+{% block navbar %}
+    <div class="navbar navbar-inverse" role="navigation">
+        <div class="container">
+            <div class="navbar-header">
+                <button type="button" class="navbar-toggle" 
+                data-toggle="collapse" data-target = ".navbar-collapse">
+                    <span class="sr-only">Toggle navigation</span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </button>
+                <a class="navbar-brand" href="/">Flasky</a>
+            </div>
+            <div class="navbar-collapse collapse">
+                <ul class="nav navbar-nav">
+                    <li><a href="/">Home</a> </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="page-header">
+        <h1>Hello,{{ name }}!</h1>
+    </div>
+</div>
+{% endblock %}
+```
+
+jinja2 中的extends指令  从Flask-Bootstrap中导入Bootstrap/base.html.从而实现模板继承.  
+Flask-Bootstrap中的基模板提供了一个网页框架.引入了Bootstrap中的所有CSS和JavaScript文件.
+
+基模板定义了可在衍生模板中使用重定义的块.block和endblock指令定义的块的内容可添加到基模板中.
+
+上面的user.html模板定义了三个块.分别命名为 title navbar 和content.这些块都是基模板提供的,  
+可以在衍生模板中重新定义.title的作用,其中的内容会出现在渲染后的html文档的头部.  
+navbar和content这两个块分别表示页面中的导航条和主题内容.
+
+这个模板中,navbar块使用Bootstrap组件自定义了一个简单的导航条,content块中有个  
+div容器.其中包含一个页面头部,之前版本的模板中的欢迎信息,现在放在了这个页面头部.
+
+
+Flask-Bootstrap的base.html还定义了很多其它块.都可以在衍生模板中使用.  
+下表列出了所有可用的块.
+```
+doc             | 整个html文档
+html_attribs    | <html>标签的属性
+html            | <html>标签的内容
+head            | <head>标签的内容
+title           | <title>标签的内容
+metas           | 一组<meta>标签
+style           | 层叠样式表定义
+body_attribs    | <body>标签的属性
+body            | <body>标签的内容
+navbar          | 用户定义的导航条
+content         | 用户定义的页面内容
+scripts         | 文档底部的JavaScript声明
+```
+
+
+上表的很多块都是Flask-Bootstrap自用的.如果直接重新自定义可能会导致一些问题.  
+例如,Bootstrap所需的文件在style和scripts块中声明的.如果程序需要想已经有内容的模块中  
+添加新内容,必须使用Jinja2提供的super()函数,例如,如果在衍生模板中添加新的JavaScript文件,  
+需要这样定义scripts块.
+
+{% block scripts %}
+{{ super() }}
+    <script type="text/javascript" src="my-script.js"></script>
+{% endblock %}
+
+(个人理解,要先用super()函数来获取原来基模板的style和JavaScript文件,再在后面添加新内容.)
+
+
+
+
+
+
+
+
+
+
+
+
 
 
