@@ -254,10 +254,77 @@ jinja2的继承机制可以帮助我们做到这一点.Flask-Bootstrap提供了�
 
 templates/base.html:
 
-```
+```html
+{% extends "bootstrap/base.html" %}
+
+{% block title %}Flasky{% endblock %}
+
+{% block navbar %}
+    <div class="navbar navbar-inverse" role="navigation">
+        <div class="container">
+            <div class="navbar-header">
+                <button type="button" class="navbar-toggle" data-toggle="collapse" data-target = ".navbar-collapse">
+                    <span class="sr-only">Toggle navigation</span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </button>
+                <a class="navbar-brand" href="/">Flasky</a>
+            </div>
+            <div class="navbar-collapse collapse">
+                <ul class="nav navbar-nav">
+                    <li><a href="/">Home</a> </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+{% block page_content %}{% endblock %}
+</div>
+{% endblock %}
 ```
 
+这个模板的content块中只有一个<div>容器,其中包含了一个名为page_content的新空块.  
+块中的内容由衍生模板定义.
 
+现在,程序使用的模板继承自这个模板,而不直接继承自Flask-Bootstrap的基模板.  
+通过继承 templated/base.html 模块编写自定义的404错误页面, 如下所示.
+
+```html
+{% extends "base.html" %}
+
+{% block title %}Flaskt - Page Not Found {% endblock %}
+
+{% block page_content %}
+<div class="page-header">
+    <h1>Not Found</h1>
+</div>
+{% endblock %}
+```
+
+重写user.html文件,可以通过基模板来简化内容,如下所示:
+
+```html
+{% extends "base.html" %}
+
+{% block title %}
+    Flasky
+{% endblock %}
+
+{% block content %}
+    <div class="page-header">
+        <h1>Hello,{{ name }}!</h1>
+    </div>
+{% endblock %}
+```
+
+#####个人的一些小理解.
+从基模板定义了js和css等各种文件以及页面风格,定义所需的块.  
+然后再在衍生模板中去定义一个同名的块,去覆盖定义基模板中定义的块.类似于Python中的变量命名,  
+从新的定义中得到值.
 
 
 
