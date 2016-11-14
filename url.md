@@ -64,13 +64,14 @@ moment = Moment(app)
 除了moment.js,Flask-Moment还依赖jQuery.js.要在HTMl文档的某个地方引入这两个库,可以直接引入,还可以选择使用那么版本,也可以使用扩展提供的
 辅助参数,从内容分发网络(Content Delivery Network, CDN)中引入通过测试的版本,Bootstrap已经引入jQuery.js,因此只需要引入moment.js即可.
 
-下面的这个示例展示了如何在基模板的scripts块中引入这个库.
+下面的这个示例展示了如何在基模板的scripts块中引入这个库.base.html
 ```html
 {% block scripts %}
-{{ super }}
+{{ super() }}
 {{ moment.inclute_moment() }}
 {% endblock %}
 ```
+千万要加上super(),不可以少了括号,如果不加这个函数,之前Bootstrap导入的jQuery.js库就会被覆盖掉,不被导入到base这个基模板中.
 
 为了处理时间戳,Flask-Moment向模板开放了moment类,下面的这个示例把变量current_time传入了模板进行渲染.
 
@@ -84,8 +85,28 @@ def index():
 ```
 
 下面的示例展示了如何在模板中渲染current_time.
+```html
+<p>The local date and time is {{ moment(current_time).format('LLL') }}.</p>
+    <P>That was {{ moment(current_time).fromNow(refresh=True)}}</P>
+```
+
+format('LLL')根据客户端电脑中的时区和区域设置渲染的日期和时间.参数决定了渲染的方式,'L'到"LLLL"分别对应了不同的复杂度,format()函数
+还可以接受自定义格式说明符.
+
+第二行的fromNow()渲染相对的时间戳,而且会随着时间的推移自动刷新显示的时间.这个时间戳最开始显示的为'a few seconds ago',但指定refresh参数后.
+其内容会随着时间的推移而更新,如果一直待在那个界面,几分钟后,会看到显示的文本变成'a minute ago' '2 minute ago'等.
+
+Flask-Moment实现了moment.js中的format(),fromNow(),fromTime(),calendar(),valueOf()和unix()方法,可以查阅文档
+文档地址:(http://momentjs.com/docs/#/displaying/) 学习moment.js 提供的全部格式化选项.
+
+注意: Flask-Moment假定服务器端程序处理的时间戳是纯正的datetime对象,且用UTC表示.关于纯正和细致的日期和时间对象的说明,
+请阅读标准库中datetime包的文档(https://docs.python.org/2/library/datetime.html).
 
 
+Flask-Moment渲染的时间戳可以实现多种语言的本地化,语言可以在模板中选择,把语言代码传给lang()函数即可:
+    {{ moment.lang('es') }}
+
+译者注:纯正的时间戳,英文为navie time.指不包含时区的时间戳.细致的时间戳,英文为 aware time.指包含时区的时间戳.
 
 
 
