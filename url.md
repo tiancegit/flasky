@@ -43,4 +43,68 @@ template/base.html:  定义收藏夹图标
 
 如果Web程序的用户来自世界各地,处理日期和时间可不是一个简单的任务.
 
-服务器需要统一时间单位,这个用户所在的地理位置无关,所以一般使用协调世界时间(Coordinated Universal Time)
+服务器需要统一时间单位,这个用户所在的地理位置无关,所以一般使用协调世界时间(Coordinated Universal Time) UTC.
+不过用户看到UTC格式的时间会感到困惑,他们更希望看到当地时间,而且采用惯用的格式.
+
+要在服务器上只使用UTC时间,一个优雅的解决方案就是把时间单位发送给Web服务器,转换成当地时间,然后渲染,Web服务器能更好的完成这一个任务,
+因为他能获取用户电脑中的时区和区域设置.
+
+有一个使用JavaScript开发的优秀客户端开源代码库,名为moment.js(http://momentjs.com/),它可以在浏览器中渲染日期和时间,Flask-moment是
+一个应用扩展,能把moment.js集成到jinja2模板中.Flask-Moment可以使用pip安装:
+
+$ pip install Flask-moment
+
+Flask 扩展一般都在创建程序实例是初始化.下面的是初始化方法:
+```python
+from flask.ext.moment import Moment  #这个是0.10的语法
+#...    #Flask 0.11.1的语法是 :  from flask_Moment import Moment
+moment = Moment(app)
+```
+
+除了moment.js,Flask-Moment还依赖jQuery.js.要在HTMl文档的某个地方引入这两个库,可以直接引入,还可以选择使用那么版本,也可以使用扩展提供的
+辅助参数,从内容分发网络(Content Delivery Network, CDN)中引入通过测试的版本,Bootstrap已经引入jQuery.js,因此只需要引入moment.js即可.
+
+下面的这个示例展示了如何在基模板的scripts块中引入这个库.
+```html
+{% block scripts %}
+{{ super }}
+{{ moment.inclute_moment() }}
+{% endblock %}
+```
+
+为了处理时间戳,Flask-Moment向模板开放了moment类,下面的这个示例把变量current_time传入了模板进行渲染.
+
+hello.py 加入一个datetime变量
+```python
+from datetime import datetime
+
+@app.route('/')
+def index():
+    return render_template('index.html', current_time=datetime.utcnow())
+```
+
+下面的示例展示了如何在模板中渲染current_time.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
