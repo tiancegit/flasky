@@ -29,3 +29,18 @@ static路由,对静态文件的引用被当成一个特殊的路由,即/static/<
 
 下面的示例展示了如何在程序的基模板中放置favicon.ico图标,这个图标会显示在浏览器的地址栏中:
 template/base.html:  定义收藏夹图标
+
+```html
+{% block head %}
+{{ super() }}
+<link rel="shortcut icon" href="{{ url_for('static', filename = 'favicon.ico')}}" type="image/x-icon">
+<link rel="icon" href="{{ url_for('static', filename = 'favicon.ico') }}" type="image/x-icon">
+{% endblock %}
+```
+图标的声明会插入head块的末尾,注意如何使用super()保留基模板中定义的块的原始内容.
+
+##使用Flask-Moment本地化日期和时间.
+
+如果Web程序的用户来自世界各地,处理日期和时间可不是一个简单的任务.
+
+服务器需要统一时间单位,这个用户所在的地理位置无关,所以一般使用协调世界时间(Coordinated Universal Time)
