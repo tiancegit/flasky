@@ -25,7 +25,8 @@ class NameFrom(Form):
 #     return render_template('index.html', L=L)  #reder_template 函数 第一个参数：模板的文件名 随后的参数为键值对。
 
 
-@app.route('/')
+
+@app.route('/', methods=["GET", "POST"])
 def index():
     name = None
     form = NameFrom
