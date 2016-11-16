@@ -4,21 +4,35 @@ from flask import Flask, render_template
 from flask_bootstrap import Bootstrap
 from flask_moment import Moment
 from datetime import datetime
+from flask_wtf import Form   #导入表单模块
+from wtforms import StringField, SubmitField
+from wtforms.validators import Required
 
 app = Flask(__name__)
 app.config['SECRET_KEY']='lee'
 moment = Moment(app)
 bootstrap = Bootstrap(app)
 
+class NameFrom(Form):
+    name = StringField('what is your name?', validators=[Required()])
+    submit = SubmitField('Submit')
+
+
+
 # @app.route('/')       #使用的app.route修饰器，把修饰的函数注册成路由
-# def index():          #ind程序实例提供ex注册成根路由的处理程序，这个函数的返回值叫做响应。
+# def index():          #index注册成根路由的处理程序，这个函数的返回值叫做响应。
 #     L='<h1>hello</h1>'
 #     return render_template('index.html', L=L)  #reder_template 函数 第一个参数：模板的文件名 随后的参数为键值对。
 
 
 @app.route('/')
 def index():
-    return render_template('index.html', current_time=datetime.utcnow())
+    name = None
+    form = NameFrom
+    if form.validate_on_submit():
+        name = form.name.data
+        form.name.date = ''
+    return render_template('index.html', form=form, name=name)
 
 
 @app.route('/user/<name>')    #动态路由　name参数动态生成响应
