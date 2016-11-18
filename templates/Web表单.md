@@ -37,10 +37,14 @@ SECRET_KEY配置的是通用密钥,可以在Flask和多个第三方扩展中使�
 hello.py  定义表单类.
 ```
 from flask_wtf import Form   #导入表单模块
+     上一句的写法错误了,应该FlaskForm 
+     from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField
 from wtforms.validators import Required
 
 class NameFrom(Form):
+这一句应该是
+class NameFrom(FlaskForm)
     name = StringField('what is your name?', validators=[Required()])
     submit = SubmitField('Submit')
 ```
@@ -145,8 +149,70 @@ import 指令的使用方法和普通Python代码一样,允许导入模板元素
 
 在新版hello.py中,视图函数index()不仅仅要渲染表单,还要接受表单中的数据.下面这个就是更新后的index()视图函数:  
 ```Python
-
+@app.route('/', methods=["GET", "POST"])
+def index():
+    name = None
+    form = NameForm()
+    if form.validate_on_submit():
+        name = form.name.data
+        form.name.date = ''
+    return render_template('index.html', form=form, name=name)
 ```
+
+
+app.route修饰器中添加的methods参数告诉Flask在url映射中把这个视图函数注册为GET和POST请求的处理程序,如果没指定methods参数,  
+就只把视图函数注册为GET请求的处理程序.
+
+把post加入方法列表,因为将提交表单作为POST请求进行处理更方便些.表单也可以作为get请求提交.不过GET请求没有主体.提交的数据以查询字符串的形式  
+附加到Url中,可以在浏览器地址栏中看到,基于这个原因以及其他多个原因,提交表单大都作为POST请求处理.
+
+局部变量用于存放表单中输入的有效名字,如果没有输入,其值为None,如上述代码,在视图中创建一个NameForm的类实例用于表示表单,提交表单之后,如果数据能被  
+所有验证函数接受,那么validate_on_submit的返回值为True,否则返回False.这个函数的返回值决定了是重新渲染表单还是处理表单的数据.
+
+用户第一次访问程序时,服务器会收到一个没有表单数据的get请求,所以validate_on_submit()将返回False.if的语句将被跳过.通过模板渲染请求,并传入表单和值为None  
+的name变量作为参数,用户会看到浏览器显示一个表单.
+
+用户提交表单后,服务器将收到一个包含数据的POST请求,validate_on_submit()会调用name字段上附属的Required()验证函数,如果名字不为空,  
+就能通过验证,validate_on_submit()返回True.现在用户输入的名字可以通过字段的date属性获取.在if语句中,把名字赋值给局部变量name.  
+然后再把date属性设为空字符串,从而清空表单字段.最后一行会调用render_template()函数渲染该模板,但这一次参数的值为表单输入的名字.  
+因此会显示一个针对该用户的欢迎信息.
+
+
+###重定向和用户回话
+
+最新版的hello.py有一个可用性问题.用户输入名字后提交表单,然后点击浏览器的刷新按钮,会看到一个莫名其妙的警告.要求在再次提交表单之前进行确认.  
+之所以出现这个情况.是因为刷新页面的时间,浏览器会重新发送之前已经发送过的最后一个请求.如果这个请求是一个包含表单数据的POST请求的话,刷新页面后  
+会再次提交表单.大多数情况下,并不是理想的处理方式.
+
+很多用户都不了解浏览器的这个警告.基于这个原因,最好别让Web程序把POST请求作为最后一个请求.
+
+这种需求的实现方式是,是重定向作为Post请求的响应.而不是使用常规响应.重定向是一种特殊的相应.响应内容是URL,而不是包含HTML代码的字符串.  
+浏览收到这种响应的时候,会像重定向的URL发起get请求.显示页面的内容.这个页面的加载要多花几微秒.因为要把第二个请求发送给服务器.除此之外,  
+用户不会察觉到有什么不同.现在,最后一个请求是一个get请求,所以刷新命令可以像预期那样正常使用了.这个巧称  POST / 重定向 / GET 模式.
+
+但这个方法会带来另一个问题.程序处理Post请求的时候,使用form.name.data获取用户输入的名字,但是一旦这个请求结束了,数据也就丢失了.因为这个  
+POST请求使用重定向处理.所以程序需要保存输入的名字.这样重定向的请求才能获得并使用这个名字.从而构建真正的响应.
+
+程序可以把数据存储在用户会话中.在请求之间"记住"数据.用户会话是一种私用存储,存在每一个连接到服务端的客户端中.用户会话,它是请求上下文的变量.
+名为session,像标准的Python字典一样操作.
+
+* 默认情况下,用户会话保存在客户端cookie中,使用设置的SECRET_KEY进行加密签名.如果篡改了cookie中的内容,签名就会失效.会话随之失效.
+
+下例是index()函数的新例子.实现了重定向和用户会话.  hello.py
+```Python
+from flask import Flask, render_template, session, redirect, url_for
+
+@app.route('/', methods=["GET", "POST"])
+def index():
+    form = NameForm()
+    if form.validate_on_submit():
+        session['name'] = form.name.data
+        return redirect(url_for("index"))
+    return render_template('index.html', form=form, name=session.get('name'))
+```
+
+
+
 
 
 
