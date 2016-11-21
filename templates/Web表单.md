@@ -245,9 +245,33 @@ def index():
         session["name"] = form.name.data
         return redirect(url_for('index'))
     return render_template('index.html', form=form, name=session.get('name'))
+```
+
+
+在这个示例中，每次提交的名字都会和存储在用户会话中的名字进行比较，而会话中存储的名字是前一次在这个表单中提交的数据。如果两个名字不一样，就会
+调用flash函数在给发给客户端的下一个相应中显示一个消息。
+
+仅调用flash()函数并不能把消息显示出来，程序使用的模板要渲染这些消息，最好在基模板中渲染flash消息。因为这样所有的页面都能使用这些消息，
+Flask把get_flashed_messages()函数开放给模板，用来获取并渲染消息。
+```html
+{% block content %}
+<div class="container">
+{% for message in get_flashed_messages() %}
+<div class="alert-warning">
+    <button type="button" class="close" data-dismiss="alert">&times;</button>
+    {{ message }}
+</div>
+{% endfor %}
+{% block page_content %}{% endblock %}
+</div>
+{% endblock %}
 
 ```
 
+在模板中使用循环是因为在之前的请求循环中每次调用flash()函数时都会生成一个消息，所以就可能有多个消息在排队等候显示。get_flashed_messages()
+函数获取的消息在下次调用时不回再次返回。因此flash消息只显示一次，然后就消失了。
+
+从表单中获取用户输入是大多数程序都需要的功能，把数据保存在永久储存器也是一样。
 
 
 
