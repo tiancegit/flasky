@@ -212,6 +212,47 @@ def index():
 ```
 
 
+在之前的一个版本里,局部变量name被用于存储用户在表单中输入的名字.这个变量现在保存在用户会话中,即是session['name'],所以在两次请求中也能  
+记住输入的值.
+
+现在,包含是\合法表单数据的请求最后会调用redirect()函数.redirect()是个辅助函数,用于生成http重定向响应.redirect()函数的参数是重定向的URL.  
+这里使用的重定向URL是程序的根地址.因此重定向响应本可以写得更简单些,写成redirect('/'),但是却会使用Flask提供的url生成函数url_for()  
+推荐使用url_for函数生成URL,因为这个函数可以使用url映射生成URL映射生成URL,从而保证了URL和定义的路由兼容,而且修改路由名字后也依然可用.
+
+url_for()函数的第一个且唯一必须指定的参数是端点名.即路由的内部名字,默认情况下,路由的端点是相应视图函数的名字.上例中,处理根路由的视图函数是index()  
+因此,传给url_for函数的名字是index. 
+
+最后一处改动位于 render_template()函数中.使用session.get('name')直接从会话中读取name参数的值.和普通的字典一样,这里使用get()获取字典  
+中键相对应的值,以避免未找到键的异常情况,因为对于不存在的键,get()会返回默认值None.
+
+
+####Flash消息
+
+请求完成之后,有时需要用户知道状态发生了变化,这里可以使用确认信息,警告或者错误提醒,一个典型的例子是,用户提交了一项有错误的表单后,服务器发回的响应  
+重新渲染了表单.并在表单显示一个信息,提示用户用户名或密码错误.
+
+这是Flask的核心特性,如下列所示,flash()函数可以实现这种效果.
+```python
+from flask import Flask, render_template, session, redirect, url_for, flash
+
+@app.route('/', methods=["GET", "POST"])
+def index():
+    form = NameForm()
+    if form.validate_on_submit():
+        old_name = session.get('name')
+        if old_name is not None and old_name != form.name.data:
+            flash('Looks like you have changed your name!')
+        session["name"] = form.name.data
+        return redirect(url_for('index'))
+    return render_template('index.html', form=form, name=session.get('name'))
+
+```
+
+
+
+
+
+
 
 
 
