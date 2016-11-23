@@ -7,21 +7,45 @@ from datetime import datetime
 from flask_wtf import FlaskForm   #导入表单模块
 from wtforms import StringField, SubmitField
 from wtforms.validators import Required
+from flask_sqlalchemy import SQLAlchemy
+import os
 
 app = Flask(__name__)
-app.config['SECRET_KEY']='lee'
+app.config['SECRET_KEY'] = 'lee'
 moment = Moment(app)
 bootstrap = Bootstrap(app)
 
+basedir = os.path.abspath(os.path.dirname(__file__))  # 获取文件路径
+app.config['SQLALCHEMY_DATABASE_URL'] = 'sqlite:////' + os.path.join(basedir, 'data.sqlite')
+app.config["SQLALCHEMY_COMMIT_ON_TEARDOWM"] = True
 
-class NameForm(FlaskForm):
+db = SQLAlchemy(app)
+
+
+class Role(db.Model):      # 定义Role模型和User模型
+    __tablename__ = 'roles'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(64), unique=True)
+
+    def __repr__(self):
+        return '<Role %r>' % self.name
+
+class User(db.Model):
+    __tablename__ = 'users'
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(64), unique=True, index=True)
+
+    def __repr__(self):
+        return '<User %r>' % self.username
+
+
+class NameForm(FlaskForm):  # 定义表单
     name = StringField('what is your name?', validators=[Required()])
     submit = SubmitField('Submit')
 
 
-
-# @app.route('/')       #使用的app.route修饰器，把修饰的函数注册成路由
-# def index():          #index注册成根路由的处理程序，这个函数的返回值叫做响应。
+# @app.route('/')       # 使用的app.route修饰器，把修饰的函数注册成路由
+# def index():          # index注册成根路由的处理程序，这个函数的返回值叫做响应。
 #     L='<h1>hello</h1>'
 #     return render_template('index.html', L=L)  #reder_template 函数 第一个参数：模板的文件名 随后的参数为键值对。
 
