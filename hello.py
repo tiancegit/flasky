@@ -10,12 +10,12 @@ from wtforms.validators import Required
 from flask_sqlalchemy import SQLAlchemy
 import os
 
+basedir = os.path.abspath(os.path.dirname(__file__))  # 获取文件路径
+
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'lee'
-
-basedir = os.path.abspath(os.path.dirname(__file__))  # 获取文件路径
 app.config['SQLALCHEMY_DATABASE_URL'] = 'sqlite:///' + os.path.join(basedir, 'data.sqlite')
-app.config["SQLALCHEMY_COMMIT_ON_TEARDOWM"] = True
+app.config['SQLALCHEMY_COMMIT_ON_TEARDOWN'] = True
 
 moment = Moment(app)
 bootstrap = Bootstrap(app)
