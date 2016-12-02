@@ -1,16 +1,17 @@
 #!coding:utf-8
-#hello.py
-import os    #导入os模块,数据库路径需要用到
+# hello.py``
+import os    # 导入os模块,数据库路径需要用到
 from flask import Flask, render_template, session, redirect, url_for, flash
 from flask_bootstrap import Bootstrap
 from flask_moment import Moment
 from flask_script import Manager, Shell
 from datetime import datetime
-from flask_wtf import FlaskForm   #导入表单模块
+from flask_wtf import FlaskForm   # 导入表单模块
 from wtforms import StringField, SubmitField
 from wtforms.validators import Required
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate, MigrateCommand
+from flask_mail import Mail
 
 basedir = os.path.abspath(os.path.dirname(__file__))  # 获取文件路径
 
@@ -18,13 +19,19 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'lee'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'data.sqlite')
 app.config['SQLALCHEMY_COMMIT_ON_TEARDOWN'] = True
+# 邮件配置
+app.config['MAIL_SERVER'] = 'smtp.googlemail.com'
+app.config['MAIL_PORT'] = '587'
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')    # 千万不要把账户密码直接写入脚本,特别是准备开源的时候,为了保护账户信息,
+app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')    # 可以使用脚本从环境中导入敏感信息
 
 manager = Manager(app)
 moment = Moment(app)
 bootstrap = Bootstrap(app)
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
-
+mail = Mail(app)
 
 
 class Role(db.Model):      # 定义Role模型和User模型
