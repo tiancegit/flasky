@@ -11,7 +11,7 @@ from wtforms import StringField, SubmitField
 from wtforms.validators import Required
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate, MigrateCommand
-from flask_mail import Mail
+from flask_mail import Mail, Message
 
 basedir = os.path.abspath(os.path.dirname(__file__))  # 获取文件路径
 
@@ -22,9 +22,13 @@ app.config['SQLALCHEMY_COMMIT_ON_TEARDOWN'] = True
 # 邮件配置
 app.config['MAIL_SERVER'] = 'smtp.googlemail.com'
 app.config['MAIL_PORT'] = '587'
-app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USE_TLS'] = True   #SMTP 服务器好像只需要TLS协议
 app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')    # 千万不要把账户密码直接写入脚本,特别是准备开源的时候,为了保护账户信息,
 app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')    # 可以使用脚本从环境中导入敏感信息
+# app.config["MAIL_USE_SSl"] = True  #这是需要 SSL协议的设置，不需要：详细见https://support.google.com/a/answer/176600?hl=zh-Hans
+app.config['FLASK_MAIL_SUBJECT_PREFIX'] = '[Flasky]'
+app.config['FLASK_MAIL_SENDER'] = 'Flasky Admin <flasky@example.com>'
+app.config['FLASK_ADMIN'] = os.environ.get("FLASK_ADMIN")    # 电子邮件的收件人保存在环境变量 FLASK_ADMIN中
 
 manager = Manager(app)
 moment = Moment(app)
@@ -68,6 +72,12 @@ manager.add_command('db', MigrateCommand)
 #     L='<h1>hello</h1>'
 #     return render_template('index.html', L=L)  #reder_template 函数 第一个参数：模板的文件名 随后的参数为键值对。
 
+def send_mail(to, subject, template, **kwargs):
+    msg = Message(app.config['FLASK_MAIL_SUBJECT_PREFIX'] + subject, sender=app.config['FLASK_MAIL_SENDER'],
+                  recipients=[to])
+    msg.body = render_template(template + '.txt', **kwargs)
+    msg.html = render_template(template + '.html', **kwargs)
+    mail.send(msg)
 
 
 @app.route('/', methods=["GET", "POST"])
@@ -79,9 +89,12 @@ def index():
             user = User(username=form.name.data)
             db.session.add(user)
             session['known'] = False
+            if app.config['FLASK_ADMIN']:
+                send_mail(app.config['FLASK_ADMIN'], 'New User', 'mail/new_user', user=user)
         else:
             session['known'] = True
         session['name'] = form.name.data
+        form.name.data = ''
         return redirect(url_for('index'))
     return render_template('index.html', form=form, name=session.get('name'), known=session.get('known', False))
 
