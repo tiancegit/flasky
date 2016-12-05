@@ -10,6 +10,13 @@ class Config:
     FLASK_MAIL_SUBJECT_PREFIX = '[Flasky]'
     FLASK_MAIL_SENDER = 'Flasky Admin <flasky@example.com>'
     FLASK_ADMIN = os.environ.get("FLASK_ADMIN")  # 电子邮件的收件人保存在环境变量 FLASK_ADMIN中
+    # 邮件配置
+    MAIL_SERVER = 'smtp.googlemail.com'
+    MAIL_PORT = '587'
+    MAIL_USE_TLS = True  # SMTP 服务器好像只需要TLS协议
+    MAIL_USERNAME = os.environ.get('MAIL_USERNAME')  # 千万不要把账户密码直接写入脚本,特别是准备开源的时候,为了保护账户信息,
+    MAIL_PASSWORD = os.envippron.get('MAIL_PASSWORD')  # 可以使用脚本从环境中导入敏感信息
+    # app.config["MAIL_USE_SSl"] = True  #这是需要 SSL协议的设置，不需要：详细见https://support.google.com/a/answer/176600?hl=zh-Hans
 
     @staticmethod
     def init_app(app):
@@ -17,13 +24,6 @@ class Config:
 
 class DevelopmentConfig(Config):
     DEBUG = True
-    # 邮件配置
-    MAIL_SERVER = 'smtp.googlemail.com'
-    MAIL_PORT = '587'
-    MAIL_USE_TLS = True  # SMTP 服务器好像只需要TLS协议
-    MAIL_USERNAME = os.environ.get('MAIL_USERNAME')  # 千万不要把账户密码直接写入脚本,特别是准备开源的时候,为了保护账户信息,
-    MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')  # 可以使用脚本从环境中导入敏感信息
-    # app.config["MAIL_USE_SSl"] = True  #这是需要 SSL协议的设置，不需要：详细见https://support.google.com/a/answer/176600?hl=zh-Hans
     SQLALCHEMY_DATABASE_URI = os.environ.get('DEV_DATABASE_URL') or 'sqlite:///' + os.path.join(basedir, 'data-dev.sqlite')
 
 
