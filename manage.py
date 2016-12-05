@@ -5,9 +5,9 @@ from app.models import User, Role
 from flask_script import Manager, Shell
 from flask_migrate import Migrate, MigrateCommand
 
-app = create_app(os.getenv("FLASK_CONFIG" or 'default'))
+app = create_app(os.getenv("FLASK_CONFIG") or 'default')   #从环境变量中获取配置，若环境变量没有，则采用默认配置
 manager = Manager(app)
-migrate = Migrate(app)
+migrate = Migrate(app, db)
 
 
 def make_shell_context():                                # 函数注册了程序,数据库实例,以及模型,因此这些对象可以导入到Shell

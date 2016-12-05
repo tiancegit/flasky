@@ -25,7 +25,7 @@ def index():
         return redirect(url_for('.index'))
     return render_template('index.html', form=form, name=session.get('name'), known=session.get('known', False))
 
-@app.route('/user/<name>')    # 动态路由　name参数动态生成响应
+@main.route('/user/<name>')    # 动态路由　name参数动态生成响应
 def user(name):
     return render_template('user.html', name=name)   # name=name是关键字参数， 左边的name表示为参数名，就是模板中的占位符
                                                      # 右边的name是当前作用域的变量，表示为同名参数的值。

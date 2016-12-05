@@ -1,5 +1,5 @@
 #!coding:utf-8
-from flask import Flask, render_template, Blueprint
+from flask import Flask
 from flask_bootstrap import Bootstrap
 from flask_mail import Mail
 from flask_moment import Moment
@@ -23,14 +23,10 @@ def create_app(config_name):
     db.init_app(app)
 
     # 附加路由和自定义的错误页面
-
     from .main import main as main_blueprint
     app.register_blueprint(main_blueprint)
 
     return app
-
-
-
 
 
 '''
