@@ -55,12 +55,13 @@ $ export MAIL_PASSWORD=password
 测试得知，同一个邮件好像只可以发送一次，第二次进行 mail.send(msg)的话，服务器不会进行发送，要修改了msg的内容才可以进行第二次发送  
 需要在gmail的设置中开启POP和IMAP的设置,测试中出现503错误，可以选择在https://support.google.com/mail/?p=WantAuthError 中排查可能的因素  
 墙内的连接gmail不一定稳定，经常出现 网络不可达错误， 不知道国外的服务器的效果怎样，待测试。
+测试了搬瓦工的VPS，可行，第一次请求谷歌会认为是别人知道了密码尝试登录，得根据邮件的连接去信任一下IP！
 
 
 下面进行 163的设置:
 
 
-    待定，，不知名原因是设置不了
+    待定，，不知名原因：设置不了
     
 
 ### 在程序中集成发送电子邮件功能
@@ -85,10 +86,62 @@ def send_mail(to, subject, template, **kwargs):
 将关键字参数传给render_templeate()函数，以便在模板中使用。进而生成电子邮件正文。
 
 index()函数很容易被扩展，这样每当表单接收新名字时，程序都会给管理员发送一封电子邮件：
-
+```
+def index():
+    form = NameForm()
+    if form.validate_on_submit():
+        user = User.query.filter_by(username=form.name.data).first()
+        if user is None:
+            user = User(username=form.name.data)
+            db.session.add(user)
+            session['known'] = False
+            if app.config['FLASK_ADMIN']:
+                send_mail(app.config['FLASK_ADMIN'], 'New User', 'mail/new_user', user=user)
+        else:
+            session['known'] = True
+        session['name'] = form.name.data
+        form.name.data = ''
+        return redirect(url_for('index'))
+    return render_template('index.html', form=form, name=session.get('name'), known=session.get('known', False))
 ```
 
+电子邮件的收件人保存在环境变量FLASKY_ADMIN中，在程序启动过程中，它会加载到一个同名配置变量中，我们要创建两个模板文件，分别用于  
+渲染纯文本和HTML版本的邮件正文，这两个模板文件都会保存在template文件夹下的mail子文件夹中，以便和普通模板区分开来，电子邮件的模板中  
+要有一个参数是用户，因此调用send_mail()函数是要以关键字参数的形式传入用户。
+
+
+### 异步发送邮件
+
+如果发送了几封邮件，mail.send()函数在发送邮件时停滞了几秒，在这个过程中，浏览器像无响应一样，为了避免处理过程中不必要的延迟，我们可以把  
+发送邮件的函数移到后台线程中，修改方法如下所示：
+
 ```
+frm threading import Thread
+
+def send_async_email(app, msg):
+    with app.app_context(msg):
+        mail.send(msg)
+
+
+def send_mail(to, subject, template, **kwargs):
+    msg = Message(app.config['FLASK_MAIL_SUBJECT_PREFIX'] + subject, sender=app.config['FLASK_MAIL_SENDER'],
+                  recipients=[to])
+    msg.body = render_template(template + '.txt', **kwargs)
+    msg.html = render_template(template + '.html', **kwargs)
+    thr = Thread(target=send_async_email, args=[app, msg])
+    thr.start()
+    return thr
+```
+
+
+上述的实现设计一个有趣的问题，很多flask扩展都假设已经存在激活的程序上下文和请求上下文。Flask-Mail的send（）函数使用current_app,因此必须 
+激活上下文不过在不同的线程中执行mail.send()函数是，程序的上下文要使用app.app_context()人工创建。
+
+如果程序需要发送大量的电子邮件时，使用专门发送电子邮件的作业要比给每一个邮件新建一个线程更合适，例如，我们可以把执行 send_async_email()函数的  
+操作发给 Celery(http://www.celeryproject.org/)任务队列。
+
+
+
 
 
 
