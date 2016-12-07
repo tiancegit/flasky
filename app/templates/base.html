@@ -22,7 +22,18 @@
             </div>
             <div class="navbar-collapse collapse">
                 <ul class="nav navbar-nav">
-                    <li><a href="/">Home</a> </li>
+                    <li><a href="{{ url_for('main.index') }}">Home</a> </li>
+                </ul>
+{#判断条件中的变量 current_user 由 Flask-Login 定义,且在视图函数和模板中自动可用。
+这个变量的值是当前登录的用户,如果用户尚未登录,则是一个匿名用户代理对象。如果
+是匿名用户, is_authenticated() 方法返回 False 。所以这个方法可用来判断当前用户是否
+已经登录。#}
+                <ul class="nav navbar-nav navbar-right">
+                    {% if current_user.is_authenticated %}
+                        <li><a href="{{ url_for('auto.logout') }}">Sign Out</a></li>
+                    {% else %}
+                        <li><a href="{{ url_for('auto.login') }}">Sign In</a></li>
+                    {% endif %}
                 </ul>
             </div>
         </div>
@@ -40,7 +51,6 @@
 {% block page_content %}{% endblock %}
 </div>
 {% endblock %}
-
 {% block scripts %}
 {{ super() }}
 {{ moment.include_moment() }}
