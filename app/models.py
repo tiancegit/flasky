@@ -1,11 +1,12 @@
 #!coding:utf-8
 from . import db
+
 '''
 数据库模型
 '''
 
 
-class Role(db.Model):      # 定义Role模型和User模型
+class Role(db.Model):   # 定义数据库模型
     __tablename__ = 'roles'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(64), unique=True)
@@ -13,6 +14,7 @@ class Role(db.Model):      # 定义Role模型和User模型
 
     def __repr__(self):
         return '<Role %r>' % self.name
+
 
 class User(db.Model):
     __tablename__ = 'users'
