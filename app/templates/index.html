@@ -5,12 +5,45 @@
 
 {% block page_content %}
 <div class="page-header">
-    <h1>Hello,{% if name %} {{ name }}{% else %} Stranger {% endif %}!</h1>
-    {% if not known %}
-        <p>Pleased to meet you!</p>
+    <h1>Hello, {% if current_user.is_authenticated %}
+        {{ current_user.username }}
+
     {% else %}
-        <p>Happy to see you again!</p>
+        Stranger</h1>
     {% endif %}
 </div>
-    {{ wtf.quick_form(form) }}
 {% endblock %}
+
+
+
+
+
+
+
+
+
+
+
+
+{# 这个模板中再次使用current——user.is_authenticated函数判断用户是否已经登录。 #}
+
+
+
+
+
+{#{% extends "base.html" %}#}
+{#{% import 'bootstrap/wtf.html' as wtf %}#}
+{##}
+{#{% block title %}Flasky{% endblock %}#}
+{##}
+{#{% block page_content %}#}
+{#<div class="page-header">#}
+{#    <h1>Hello,{% if name %} {{ name }}{% else %} Stranger {% endif %}!</h1>#}
+{#    {% if not known %}#}
+{#        <p>Pleased to meet you!</p>#}
+{#    {% else %}#}
+{#        <p>Happy to see you again!</p>#}
+{#    {% endif %}#}
+{#</div>#}
+{#    {{ wtf.quick_form(form) }}#}
+{#{% endblock %}#}
