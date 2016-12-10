@@ -1,9 +1,10 @@
 #!coding:utf-8
 from flask import render_template, redirect, request, url_for, flash
 from . import auth
-from flask_login import login_required, login_user, logout_user
+from flask_login import login_required, login_user, logout_user, current_user
 from ..models import User, db
 from .forms import LoginForm, RegistrationForm
+from ..email import send_email
 
 
 ''' 这个函数创建了一个LoginForm对象，当请求类型是Get的时候，视图直接渲染模板，既显示表单，当表单在POST请求中提交时，Flask-wtf中的
@@ -49,6 +50,8 @@ def logout():
 
 '''提交注册表单后，通过验证后，系统就使用用户填写的信息在数据库中注册一个新用户，处理这个任务的视图函数如下'''
 
+# 当前的 /register 路由把新用户添加到数据库中后,会重定向到 /index。在重定向之前,这个路由需要发送确认邮件。
+
 
 @auth.route('/register', methods=['GET', 'POST'])
 def register():
@@ -58,9 +61,25 @@ def register():
                     username=form.username.data,
                     password=form.password.data)
         db.session.add(user)
-        flash("You can now login")
-        return redirect(url_for('auth.register'))
+        db.session.commit(user)
+        token = user.generate_confirmation_token()
+        send_email(user.email, 'Confirm You Account', 'auth/email/confirm', user=user, token=token,)
+        flash("A confirmation email has been sent to you by email.")
+        return redirect(url_for('main.index'))
     return render_template('auth/register.html', form=form)
+
+
+@auth.route('/confirm/<token>')
+@login_required
+def confirm(token):
+    if current_user.confirmed:
+        return redirect(url_for('main.index'))
+    if current_user.confirmed(token):
+        flash('You have confirmed your account. Thanks!')
+    else:
+        flash('The confirmation link is invalid or has expired.')
+    return redirect(url_for('main.index'))
+
 
 
 @auth.route('/secret')
