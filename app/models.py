@@ -36,7 +36,7 @@ class User(UserMixin, db.Model):
     username = db.Column(db.String(64), unique=True, index=True)
     password_hash = db.Column(db.String(128))
     role_id = db.Column(db.Integer, db.ForeignKey('roles.id'))
-    confirmed = db.Colum(db.Boolean, default=False)
+    confirmed = db.Column(db.Boolean, default=False)
 
     # 添加了Emai字段， 在这个程序中，用户使用电子邮件地址登陆，因为相对用户名而言，用户更不容易忘记自己的电子邮件地址。
 

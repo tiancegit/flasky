@@ -82,6 +82,7 @@ def confirm(token):
 
 
 
+
 @auth.route('/secret')
 @login_required     # login提供了一个装饰器，如果未认证用户访问路由，Flask-Login就会拦截请求，把用户发往登录页面
 def secret():
