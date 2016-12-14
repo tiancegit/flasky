@@ -7,9 +7,9 @@ basedir = os.path.abspath(os.path.dirname(__file__))  # 获取文件路径
 class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'lee'
     SQLALCHEMY_COMMIT_ON_TEARDOWN = True
-    FLASK_MAIL_SUBJECT_PREFIX = '[Flasky]'
-    FLASK_MAIL_SENDER = 'Flasky Admin <flasky@example.com>'
-    FLASK_ADMIN = os.environ.get("FLASKY_ADMIN")  # 电子邮件的收件人保存在环境变量 FLASK_ADMIN中
+    FLASKY_MAIL_SUBJECT_PREFIX = '[Flasky]'
+    FLASKY_MAIL_SENDER = 'Flasky Admin <flasky@example.com>'
+    FLASKY_ADMIN = os.environ.get("FLASKY_ADMIN")  # 电子邮件的收件人保存在环境变量 FLASK_ADMIN中
     # 邮件配置
     MAIL_SERVER = 'smtp.googlemail.com'
     MAIL_PORT = '587'

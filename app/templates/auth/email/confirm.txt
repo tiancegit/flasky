@@ -1,16 +1,17 @@
-Dear {{ user.name }},
+Dear {{ user.username }},
 
 Welcome to Flasky!
 
 To confirm your account please chick on the following link:
 
-{{ url_for(auth.confirm, token=token, _external=True) }}
+{{ url_for('auth.confirm', token=token, _external=True) }}
 
 Sincerely,
 
 The Flasky Team
 
 Note: replies to this email address are not monitored.
+
 
 {# 默认情况下, url_for() 生成相对 URL,例如 url_for('auth.confirm', token='abc') 返
 回的字符串是 '/auth/confirm/abc' 。这显然不是能够在电子邮件中发送的正确 URL。相

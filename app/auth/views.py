@@ -61,7 +61,7 @@ def register():
                     username=form.username.data,
                     password=form.password.data)
         db.session.add(user)
-        db.session.commit(user)
+        db.session.commit()
         token = user.generate_confirmation_token()
         send_email(user.email, 'Confirm You Account', 'auth/email/confirm', user=user, token=token,)
         flash("A confirmation email has been sent to you by email.")
@@ -121,10 +121,17 @@ def unconfirmed():
 
 # 重新发送账户确认邮件.
 
+'''这个路由为 current_user（既是已登录用户，也是目标用户）用户，重做了一遍注册路由中的操作，这个路由也用login_required保护，
+确保访问时程序知道请求再次发送邮件的是那个用户。'''
+
 
 @auth.route('/confirm')
-@login_
-
+@login_required
+def resend_confirmation():
+    token = current_user.generate_confirmation_token()
+    send_email(current_user.email, 'Confirm Your Account', 'auth/email/confirm', user=current_user, token=token)
+    flash('A new confirmation email has been sent to you by email')
+    return redirect(url_for('main.index'))
 
 
 @auth.route('/secret')
