@@ -68,18 +68,62 @@ def register():
         return redirect(url_for('main.index'))
     return render_template('auth/register.html', form=form)
 
+'''
+Flask-login提供的login_required修饰器会保护这个路由,因此用户点击确认邮件的连接后,要先登录,然后才可以执行这个视图函数.
+
+这个函数先检查已登录用户是否登录过,如果确认过,则重定向到首页,因为此时不用做什么操作,这样处理可以避免用户不小心点击确认令牌带来额外的工作.
+
+由于令牌确认工作完全在User模型中完成,所以视图函数只需要调用confirm()方法即可,然后再根据确认结果的不同显示不同的flash信息,确认成功之后,
+User模型中的confirmed的值会被修改并添加到会话中,请求处理完成后,这两个操作被提交到数据库.
+'''
+
 
 @auth.route('/confirm/<token>')
 @login_required
 def confirm(token):
     if current_user.confirmed:
         return redirect(url_for('main.index'))
-    if current_user.confirmed(token):
+    if current_user.confirm(token):
         flash('You have confirmed your account. Thanks!')
     else:
         flash('The confirmation link is invalid or has expired.')
     return redirect(url_for('main.index'))
 
+'''
+每个程序都可以决定用户确认账户之前可以做些什么操作,比如允许未确认的用户登录,这个页面要求用户获取权限之前先确认账户.
+
+这一步可以使用 Flask提供的before_request钩子完成,对于蓝本来说,before_request钩子只能应用到属于蓝本的请求上,若是想在蓝本中使用
+针对程序全局请求的钩子,必须使用before_app_request修饰器,
+'''
+
+
+@auth.before_app_request
+def before_request():
+    if current_user.is_authenticated \
+            and not current_user.confirmed \
+            and request.endpoint[:5] != 'auth.' \
+            and request.endpoint != 'static':
+        return redirect(url_for('auth.unconfirmed'))
+
+
+@auth.route('/unconfirmed')
+def unconfirmed():
+    if current_user.is_anonymous or current_user.confirmed:
+        return redirect(url_for('main.index'))
+    return render_template('auth/unconfirmed.html')  # 只渲染一个模板,有如何确认账户的说明,此外还提供一个链接,用于发送新的确认邮件.
+
+'''同时满足下面的三个条件before_app_request会拦截请求,1: 用户已登录(current_user.is_authenticated()必须返回True.  2: 用户的
+账户还未确认. 3: 请求的端点(使用request.endpoint获取)不在认证蓝本中,访问认证路由要获取权限,因为这些路由的作用是让用户确认账户或者
+执行其它账户操作的.   如果请求满足以上的三个条件,则会被重定向到 /auth/unconfirmed 路由, 显示一个相关信息的页面.'''
+
+'''如果 before_request或before_app_request的回调函数返回相应或者重定向,Flask会直接将其发送到客户端,而不会调用请求的视图函数,因此这些
+会在必要时拦截请求.'''
+
+# 重新发送账户确认邮件.
+
+
+@auth.route('/confirm')
+@login_
 
 
 
