@@ -3,7 +3,7 @@ from flask import render_template, redirect, request, url_for, flash
 from . import auth
 from flask_login import login_required, login_user, logout_user, current_user
 from ..models import User, db
-from .forms import LoginForm, RegistrationForm
+from .forms import LoginForm, RegistrationForm, ChangePasswordForm
 from ..email import send_email
 
 
@@ -132,6 +132,31 @@ def resend_confirmation():
     send_email(current_user.email, 'Confirm Your Account', 'auth/email/confirm', user=current_user, token=token)
     flash('A new confirmation email has been sent to you by email')
     return redirect(url_for('main.index'))
+
+'''verify_password 方 法 接 受 一 个 参 数( 即 密 码 ), 将 其 传 给 Werkzeug 提 供 的 check_ password_hash()
+ 函数,和存储在 User 模型中的密码散列值进行比对。如果这个方法返回True ,就表明密码是正确的。
+# 修改密码的路由，引入相对应的表，取Old_password 的值与数据库中值相比较，若返回True，则进行下一步！ 把新密码提交到数据库中。
+flash一个信息，你的密码已经被更新，并重定向到首页，否则Flash一个无效密码信息。
+'''
+
+
+@auth.route('/change-password', methods=['GET', 'POST'])
+@login_required
+def change_password():
+    form = ChangePasswordForm()
+    if form.validate_on_submit():
+        if current_user.verify_password(form.old_password.data):
+            current_user.password = form.password.data
+            db.session.add(current_user)
+            flash('Your password has been updated.')
+            return redirect(url_for('main.index'))
+        else:
+            flash('Invalid password.')
+    return render_template('auth/change_password.html', form=form)
+
+
+
+
 
 
 @auth.route('/secret')

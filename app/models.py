@@ -48,9 +48,8 @@ class User(UserMixin, db.Model):
     password_hash 字段。如果试图读取 password 属性的值,则会返回错误,原因很明显,因
     为生成散列值后就无法还原成原来的密码了。
     verify_password 方 法 接 受 一 个 参 数( 即 密 码 )
-    , 将 其 传 给 Werkzeug 提 供 的 check_
-    password_hash() 函数,和存储在 User 模型中的密码散列值进行比对。如果这个方法返回
-    True ,就表明密码是正确的。'''
+    , 将 其 传 给 Werkzeug 提 供 的 check_ password_hash() 函数,和存储在 User
+    模型中的密码散列值进行比对。如果这个方法返回True ,就表明密码是正确的。'''
 
     @property
     def password(self):

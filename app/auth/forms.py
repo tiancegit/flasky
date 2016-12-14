@@ -56,3 +56,12 @@ class RegistrationForm(FlaskForm):
             raise ValidationError('Username already in user.')
 
     # 显示这个表单的模板是/templates/auth/register.html，和登录模板一样，这个模板也使用wtf.quick_form()渲染表单。
+
+
+
+class ChangePasswordForm(FlaskForm):
+    old_password = PasswordField('Old password', validators=[Required()])
+    password = PasswordField('New password', validators=[
+        Required(), EqualTo('password2', message='Passwords must match')])
+    password2 = PasswordField('Confirm new password', validators=[Required()])
+    submit = SubmitField('Update Password')
