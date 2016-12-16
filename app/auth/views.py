@@ -1,11 +1,11 @@
 #!coding:utf-8
 from flask import render_template, redirect, request, url_for, flash
-from . import auth
 from flask_login import login_required, login_user, logout_user, current_user
-from ..models import User, db
-from .forms import LoginForm, RegistrationForm, ChangePasswordForm
-from ..email import send_email
 
+from . import auth
+from .forms import LoginForm, RegistrationForm, ChangePasswordForm, PasswordResetForm, PasswordResetRequestForm
+from ..email import send_email
+from ..models import User, db
 
 ''' 这个函数创建了一个LoginForm对象，当请求类型是Get的时候，视图直接渲染模板，既显示表单，当表单在POST请求中提交时，Flask-wtf中的
 validate_on_submit()函数会验证表单数据，然后尝试登入用户。
@@ -155,11 +155,45 @@ def change_password():
     return render_template('auth/change_password.html', form=form)
 
 
+@auth.route('/reset', methods=['GET', 'POST'])
+def password_reset_request():
+    if not current_user.is_anonymous:  # anonymous 无名的,匿名的
+        return redirect(url_for('main.index'))
+    form = PasswordResetRequestForm()
+    if form.validate_on_submit():
+        user = User.query.filter_by(email=form.email.data).first()
+        if user:
+            token = user.generate_reset_token()
+            send_email(user.email, 'Reset Your Password',
+                       'auth/email/reset_password',
+                       user=user, token=token,
+                       next=request.args.get('next'))
+        flash('An email with instructions to reset your password has been '
+            'sent to you')
+        return redirect(url_for('auth.login'))
+    return render_template('auth/reset_password.html', form=form)
 
 
+@auth.route('/reset/<token>', methods=['GET', 'POST'])
+def password_reset(token):
+    if not current_user.is_anonymous:
+        return redirect(url_for('main.index'))
+    form = PasswordResetForm()
+    if form.validate_on_submit():
+        user = User.query.filter_by(email=form.email.data).first()
+        if user is None:
+            return redirect(url_for('main.index'))
+        if user.reset_password(token, form.password.data):
+            flash('You password has been updated.')
+            return redirect(url_for('auth.lonin'))
+        else:
+            return redirect(url_for('main.index'))
+    return render_template('auth/reset_password.html', form=form)
 
 
 @auth.route('/secret')
 @login_required     # login提供了一个装饰器，如果未认证用户访问路由，Flask-Login就会拦截请求，把用户发往登录页面
 def secret():
     return 'Only authenticated users are allowed!'
+
+

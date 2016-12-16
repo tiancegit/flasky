@@ -1,10 +1,11 @@
 #!coding:utf-8
-from . import db
-from werkzeug.security import generate_password_hash, check_password_hash
-from flask_login import UserMixin
-from . import login_manager
-from itsdangerous import TimedJSONWebSignatureSerializer as Serizlizer    # 使用itsdangerous生成令牌
 from flask import current_app
+from flask_login import UserMixin
+from itsdangerous import TimedJSONWebSignatureSerializer as Serizlizer    # 使用itsdangerous生成令牌
+from werkzeug.security import generate_password_hash, check_password_hash
+
+from . import db
+from . import login_manager
 
 '''
 数据库模型
@@ -40,8 +41,6 @@ class User(UserMixin, db.Model):
 
     # 添加了Emai字段， 在这个程序中，用户使用电子邮件地址登陆，因为相对用户名而言，用户更不容易忘记自己的电子邮件地址。
 
-    def __repr__(self):
-        return '<User %r>' % self.username
 
     '''计算密码散列值的函数通过名为 password 的只写属性实现。设定这个属性的值时,赋值
     方 法 会 调 用 Werkzeug 提 供 的 generate_password_hash() 函 数, 并 把 得 到 的 结 果 赋 值 给
@@ -95,4 +94,21 @@ class User(UserMixin, db.Model):
         db.session.add(self)
         return True
 
+    def generate_reset_token(self, expiration=3600):
+        s = Serizlizer(current_app.config['SECRET_KEY'], expiration)
+        return s.dumps({'reset': self.id})
 
+    def reset_password(self, token, new_password):
+        s = Serizlizer(current_app.config['SECRET_KEY'])
+        try:
+            data = s.loads(token)
+        except:
+            return False
+        if data.get('reset') != self.id:
+            return False
+        self.password = new_password
+        db.session.add(self)
+        return True
+
+    def __repr__(self):
+        return '<User %r>' % self.username

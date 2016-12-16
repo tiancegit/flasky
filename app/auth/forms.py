@@ -1,11 +1,10 @@
 #!coding:utf-8
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, BooleanField, SubmitField
-from wtforms.validators import Required, length, Email, Regexp, EqualTo
 from wtforms import ValidationError
+from wtforms.validators import Required, length, Email, Regexp, EqualTo
+
 from ..models import User
-
-
 
 '''
 电子邮件字段用到了 WTForms 提供的 Length() 和 Email() 验证函数。 PasswordField 类表
@@ -58,10 +57,51 @@ class RegistrationForm(FlaskForm):
     # 显示这个表单的模板是/templates/auth/register.html，和登录模板一样，这个模板也使用wtf.quick_form()渲染表单。
 
 
-
 class ChangePasswordForm(FlaskForm):
     old_password = PasswordField('Old password', validators=[Required()])
     password = PasswordField('New password', validators=[
         Required(), EqualTo('password2', message='Passwords must match')])
     password2 = PasswordField('Confirm new password', validators=[Required()])
     submit = SubmitField('Update Password')
+
+
+# 提交重设密码要求时,提交要重设密码的邮箱用户的表单.
+
+class PasswordResetRequestForm(FlaskForm):
+    email = StringField('Email', validators=[Required(), length(1, 64),
+                                             Email()])
+    submit = SubmitField('Reset Password')
+
+
+class PasswordResetForm(FlaskForm):
+    email = StringField("Email", validators=[Required(), length(1, 64),
+                                             Email()])
+    password = PasswordField('New Password', validators=[
+        Required(), EqualTo('Password2', message='Password must match')])
+    password2 = PasswordField('Confirm password', validators=[Required()])
+    submit = SubmitField('Reset Password')
+
+# 一个错误处理函数,查询邮箱是否存在于数据库中,若否,则返回一个错误信息.
+
+    def validate_email(self, field):
+        if User.query.filter_by(email=field.data).first() is None:
+            raise ValidationError('Unkown Email address.')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
