@@ -3,7 +3,7 @@ from flask import render_template, redirect, request, url_for, flash
 from flask_login import login_required, login_user, logout_user, current_user
 
 from . import auth
-from .forms import LoginForm, RegistrationForm, ChangePasswordForm, PasswordResetForm, PasswordResetRequestForm
+from .forms import *
 from ..email import send_email
 from ..models import User, db
 
@@ -185,10 +185,21 @@ def password_reset(token):
             return redirect(url_for('main.index'))
         if user.reset_password(token, form.password.data):
             flash('You password has been updated.')
-            return redirect(url_for('auth.lonin'))
+            return redirect(url_for('auth.login'))
         else:
             return redirect(url_for('main.index'))
     return render_template('auth/reset_password.html', form=form)
+
+
+@auth.route('/change-email', method=['GET', 'POST'])
+@login_required
+def change_email_request():
+    form = ChangeEmailForm()
+    if form.validate_on_submit():
+        if current_user.verify_password(form.password.data):
+            new_email = form.email.data
+            token = current_user.generate_email_change_token(new_email)
+            send_email(new_email)
 
 
 @auth.route('/secret')

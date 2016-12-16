@@ -56,7 +56,9 @@ $ export MAIL_PASSWORD=password
 需要在gmail的设置中开启POP和IMAP的设置,测试中出现503错误，可以选择在https://support.google.com/mail/?p=WantAuthError 中排查可能的因素  
 墙内的连接gmail不一定稳定，经常出现 网络不可达错误， 不知道国外的服务器的效果怎样，待测试。
 测试了搬瓦工的VPS，可行，第一次请求谷歌会认为是别人知道了密码尝试登录，得根据邮件的连接去信任一下IP！
+在墙内使用了SS代理，让终端走SS的代理的命令/该方式有效的解决了墙的问题。偶尔会因为陌生IP而被谷歌拦截请求，只需要在谷歌邮件中同意该设备就可以了。
 
+    export  ALL_PROXY=socks5://127.0.0.1:1080
 
 下面进行 163的设置:
 

@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+{% import 'Bootstrap/wtf.html' as wtf %}
+
+{% block title %}Flasky - Change Email Address{% endblock %}
+
+{% block page_content %}
+<div>
+    <h1>Change Your Email Address</h1>
+</div>
+<div class="col-md-4">
+    {{ wtf.quick_form(form) }}
+</div>
