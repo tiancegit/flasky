@@ -68,7 +68,7 @@ class User(UserMixin, db.Model):
 
     '''
     dumps() 方法为指定的数据生成一个加密签名,然后再对数据和签名进行序列化,生成令
-    牌字符串。 expires_in 参数设置令牌的过期时间,单位为秒。
+    牌字符串。  expiration 参数设置令牌的过期时间,单位为秒。
     generate_confirmation_token() 方法生成一个令牌,有效期默认为一小时。 confirm() 方
     法检验令牌,如果检验通过,则把新添加的 confirmed 属性设为 True 。
     '''
@@ -110,5 +110,33 @@ class User(UserMixin, db.Model):
         db.session.add(self)
         return True
 
+    # expiration 令牌的过期时间
+
+    def generate_email_change_token(self, new_email, expiration=3600):
+        s = Serizlizer(current_app.config['SECRET_KEY'], expiration)
+        return s.dumps({'change_email': self.id, new_email: new_email})
+
+    def change_email(self, token):
+        s = Serizlizer(current_app.config['SECRET_KEY'])
+        try:
+            data = s.loads(token)
+        except:
+            return False
+        if data.get('change_email') != self.id:
+            return False
+        new_email = data.get('chang_email')
+        if new_email is None:
+            return False
+        if self.query.filter_by(email=new_email).first() is not None:
+            return False
+        self.email = new_email
+        db.session.add(self)
+        return True
+
     def __repr__(self):
         return '<User %r>' % self.username
+
+# 这段代码作用未明确
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
