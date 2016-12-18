@@ -24,10 +24,34 @@ class Role(db.Model):   # 定义数据库模型
     __tablename__ = 'roles'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(64), unique=True)
+    default = db.Column(db.Boolean, default=False, index=True)  # 只有一个角色的default字段要设为True，其他的都设为False。用户注册是其角色会被设为默认角色。
+    permissions = db.Column(db.Integer)   # 添加了这个字段，其值是一个整数，表示位标志。各操作都对应一个位位置。能执行某项操作的角色。其位会被设为1
     users = db.relationship('User', backref='role', lazy='dynamic')
 
     def __repr__(self):
         return '<Role %r>' % self.name
+
+
+'''
+程序的权限
+操  作                   位  值            说  明
+关注用户              0b00000001(0x01)  关注其他用户
+在他人的文章中发表评论  0b00000010(0x02)  在他人撰写的文章中发布评论
+写文章                0b00000100(0x04)  写原创文章
+管理他人发表的评论     0b00001000(0x08    查处他人发表的不当评论
+管理员权限            0b10000000(0x80)   管理网站
+表中的权限使用8位表示，现在只用了其中5位。其他3位可用于将来的补充。
+表中的权限可以使用下面的代码表示。
+'''
+
+
+class Permission:
+    FOLLOW = 0X01
+    COMMENT = 0X02
+    WRITE_ARTICLES = 0X04
+    MODERATE_COMMENTS = 0X08
+    ADMINISTER = 0X80
+
 
 
 class User(UserMixin, db.Model):
