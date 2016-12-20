@@ -11,13 +11,6 @@ from . import login_manager
 数据库模型
 '''
 
-'''使用 Werkzeug 实现密码散列
-Werkzeug 中的 security 模块能够很方便地实现密码散列值的计算。这一功能的实现只需要
-两个函数,分别用在注册用户和验证用户阶段。
-• generate_password_hash(password, method= pbkdf2:sha1 , salt_length=8) :这个函数将
-原始密码作为输入,以字符串形式输出密码的散列值,输出的值可保存在用户数据库中。
-method 和 salt_length 的默认值就能满足大多数需求。
-• check_password_hash(hash, password) :这个函数的参数是从数据库'''
 
 
 class Role(db.Model):   # 定义数据库模型
@@ -30,6 +23,42 @@ class Role(db.Model):   # 定义数据库模型
 
     def __repr__(self):
         return '<Role %r>' % self.name
+
+'''
+下表列出了要支持的用户角色，以及定义角色使用的权限位。
+表 用户角色
+
+用户角色      权限               说明
+匿名     0b00000000（0X00）    未登录的用户，在程序中只有阅读的权限。
+用户     0b00000111（0X07）    拒用发布文章，发表评论和关注其他用户的权限。这是新用户的默认角色。
+协管员   0b00001111（0X0f)     增加审查不当言论的权限。
+管理员   0b11111111（0Xff）    具有所有权限，包括修改其他用户所属角色的权限。
+
+使用权限组织角色，以后添加新角色只需使用不同的权限组合即可。
+
+将角色手动添加到数据库既耗时也容易出错。作为替代。可以添加一个类，完成这个操作。
+'''
+
+    @staticmethod
+    def insert_roles():
+        roles = {
+            'User' : (Permission.FOLLOW |
+                      Permission.COMMENT |
+                      Permission.WRITE_ARTICLES, True),
+            'Moderator' : (Permission.FOLLOW |
+                           Permission.COMMENT |
+                           Permission.WRITE_ARTICLES |
+                           Permission.MODERATE_COMMENTS, False),
+            'Administrator' : (0Xff, False)
+        }
+        for r in roles:
+            role = Role.query.filter_by(name=r).first()
+            if role is None:
+                role = Role(name=r)
+            role.permissions = roles[r][0]
+            role.default
+
+
 
 
 '''
@@ -53,7 +82,6 @@ class Permission:
     ADMINISTER = 0X80
 
 
-
 class User(UserMixin, db.Model):
     __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
@@ -63,8 +91,15 @@ class User(UserMixin, db.Model):
     role_id = db.Column(db.Integer, db.ForeignKey('roles.id'))
     confirmed = db.Column(db.Boolean, default=False)
 
-    # 添加了Emai字段， 在这个程序中，用户使用电子邮件地址登陆，因为相对用户名而言，用户更不容易忘记自己的电子邮件地址。
+    # 添加了Email字段， 在这个程序中，用户使用电子邮件地址登陆，因为相对用户名而言，用户更不容易忘记自己的电子邮件地址。
 
+    '''使用 Werkzeug 实现密码散列
+    Werkzeug 中的 security 模块能够很方便地实现密码散列值的计算。这一功能的实现只需要
+    两个函数,分别用在注册用户和验证用户阶段。
+    • generate_password_hash(password, method= pbkdf2:sha1 , salt_length=8) :这个函数将
+    原始密码作为输入,以字符串形式输出密码的散列值,输出的值可保存在用户数据库中。
+    method 和 salt_length 的默认值就能满足大多数需求。
+    • check_password_hash(hash, password) :这个函数的参数是从数据库'''
 
     '''计算密码散列值的函数通过名为 password 的只写属性实现。设定这个属性的值时,赋值
     方 法 会 调 用 Werkzeug 提 供 的 generate_password_hash() 函 数, 并 把 得 到 的 结 果 赋 值 给
