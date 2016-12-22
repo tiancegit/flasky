@@ -1,6 +1,6 @@
 #!coding:utf-8
 from flask import current_app
-from flask_login import UserMixin
+from flask_login import UserMixin, AnonymousUserMixin
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer    # 使用itsdangerous生成令牌
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -21,9 +21,33 @@ class Role(db.Model):   # 定义数据库模型
     permissions = db.Column(db.Integer)   # 添加了这个字段，其值是一个整数，表示位标志。各操作都对应一个位位置。能执行某项操作的角色。其位会被设为1
     users = db.relationship('User', backref='role', lazy='dynamic')
 
+    @staticmethod
+    def insert_roles():
+        ''' 函数并不直接创建新角色对象,而是通过角色名查找现有的角色,然后再进行更新,只用当数据库
+        没有某个角色名才会去创建新角色对象,如此一来,如果以后更新了角色列表,就可以执行更新操作了,如果
+         想添加新角色或者修改角色的权限,修改rolse数组,再运行函数即可, 匿名角色不需要在数据库中表示出来,这个角色的作用
+         是为了表示不在数据库中的用户.'''
+        roles = {
+            'User': (Permission.FOLLOW |
+                     Permission.COMMENT |
+                     Permission.WRITE_ARTICLES, True),
+            'Moderator': (Permission.FOLLOW |
+                          Permission.COMMENT |
+                          Permission.WRITE_ARTICLES |
+                          Permission.MODERATE_COMMENTS, False),
+            'Administrator': (0Xff, False)
+        }
+        for r in roles:
+            role = Role.query.filter_by(name=r).first()
+            if role is None:
+                role = Role(name=r)
+            role.permissions = roles[r][0]
+            role.default = roles[r][1]
+            db.session.add(role)
+        db.session.commit()
+
     def __repr__(self):
         return '<Role %r>' % self.name
-
 '''
 下表列出了要支持的用户角色，以及定义角色使用的权限位。
 表 用户角色
@@ -38,29 +62,6 @@ class Role(db.Model):   # 定义数据库模型
 
 将角色手动添加到数据库既耗时也容易出错。作为替代。可以添加一个类，完成这个操作。
 '''
-
-    @staticmethod
-    def insert_roles():
-        roles = {
-            'User' : (Permission.FOLLOW |
-                      Permission.COMMENT |
-                      Permission.WRITE_ARTICLES, True),
-            'Moderator' : (Permission.FOLLOW |
-                           Permission.COMMENT |
-                           Permission.WRITE_ARTICLES |
-                           Permission.MODERATE_COMMENTS, False),
-            'Administrator' : (0Xff, False)
-        }
-        for r in roles:
-            role = Role.query.filter_by(name=r).first()
-            if role is None:
-                role = Role(name=r)
-            role.permissions = roles[r][0]
-            role.default
-
-
-
-
 '''
 程序的权限
 操  作                   位  值            说  明
@@ -192,12 +193,45 @@ class User(UserMixin, db.Model):
         db.session.add(self)
         return True
 
+    # Uesr类的构造函数首先调用鸡肋的构造函数,如果创建基类对象后还没定义角色,
+    # 则根据电子邮件地址决定将其设为管理员或者默认角色
+
+    def __init__(self, **kwargs):
+        super(User, self).__init__(**kwargs)
+        if self.role is None:
+            if self.email == current_app.config['FLASK_ADMIN']:
+                self.role = Role.query.filter_by(permissions=0xff).first()
+            if self.role is None:
+                self.role = Role.query.filter_by(default=True).first()
+
+    # 为了简化角色和权限的实现过程,可在User模型中添加一个辅助方法,检查是否有指定的权限.
+    # 检查用户是否有指定的权限.
+
+    def can(self, permissions):
+        return self.role is not None and (self.role.permissions & permissions) == permissions
+    # 方法在请求和赋予角色这两种权限之间进行位与操作,如果角色中包含请求的所有权限位,则返回True,
+    # 表示允许用户执行此项操作,
+
+    # 检查管理员权限的功能经常用到,因此使用了单独的is_administrator()方法实现.
+    def is_administrator(self):
+        return self.can(Permission.ADMINISTER)
+
     def __repr__(self):
         return '<User %r>' % self.username
 
+# 出于一致性考虑,定义了 AnonymousUser 类,并实现了 can() 和 is_administrator()方法
+# 这个对象继承自 AnonymousUserMixin类,并将其设为用户未登录是 current_user的值.这样程序不用先
+# 检查用户是否登录.就能自由调用 current_user.can() 和 current_user.is_administrator().
+
+class AnonymousUser(AnonymousUserMixin):
+    def can(self, permissions):
+        return False
+
+    def is_administrator(self):
+        return False
+login_manager.anonymous_user = AnonymousUser
+
 # 这段代码作用未明确
-
-
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
