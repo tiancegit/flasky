@@ -1,4 +1,6 @@
 #!coding:utf-8
+from datetime import datetime
+
 from flask import current_app
 from flask_login import UserMixin, AnonymousUserMixin
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer    # 使用itsdangerous生成令牌
@@ -91,6 +93,26 @@ class User(UserMixin, db.Model):
     password_hash = db.Column(db.String(128))
     role_id = db.Column(db.Integer, db.ForeignKey('roles.id'))
     confirmed = db.Column(db.Boolean, default=False)
+    # 用户信息字段
+    # 新加的字段保存了用户的真实名字,所在地,自我介绍,注册日期和最后访问日期.
+    # abour_me 字段的类型是 db.Text(),db.String和db,Text的区别在于后者不需要指定最大长度.
+    # 两个时间戳的默认值是当前时间,注意 datetime.utcnow后面没有(),因为db.Column()的 default参数可以接受函数作为默认值.
+    # 所以每次需要生成默认值时,db.Column()都会调用指定的函数,member_since字段只需要默认值即可.
+    name = db.Column(db.String(64))
+    location = db.Column(db.String(64))
+    about_out = db.Column(db.Text())
+    member_since = db.Column(db.DateTime(), default=datetime.utcnow)
+    lats_seen = db.Column(db.DateTime(), default=datetime.utcnow())
+
+    # last_seen字段创建时的初始值也是当前时间,但用户每次访问网站后,这个值都会被刷新,在user模型添加一个方法去完成这个操作.
+
+    if __name__ == '__main__':
+        def ping(self):
+            self.lats_seen = datetime.utcnow()
+            db.session.add(self)
+
+            # 每次收到用户的请求时都调用ping()方法,由于 auth蓝本中的before_app_request处理程序在每次请求前运行,所以能轻松实现这个需求
+            # 跳转到 app/auth/views.py
 
     # 添加了Email字段， 在这个程序中，用户使用电子邮件地址登陆，因为相对用户名而言，用户更不容易忘记自己的电子邮件地址。
 

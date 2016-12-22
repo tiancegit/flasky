@@ -1,5 +1,5 @@
 #!coding:utf-8
-from flask import render_template, session, redirect, url_for, current_app
+from flask import render_template, session, redirect, url_for, current_app, abort
 from flask_login import login_required
 
 from . import main
@@ -29,7 +29,21 @@ def index():
         return redirect(url_for('.index'))
     return render_template('index.html', form=form, name=session.get('name'), known=session.get('known', False))
 
+''' 为每个用户创建资料页面, 这个路由在main蓝本中添加,对于名为 john的用户,其资料页面的地址是 http://localhost:5000/user/john.
+这个视图函数会在数据库中搜索 URL 指定的用户名,如果找到,则渲染模板user.html,并把用户名作为参数传入模板,如果传入路由的用户名不存在,则返回404错误.
+user模板用过渲染保存在用户对象中的信息,这个模板的初始版本:app/templates/user.html
+'''
 
+
+@main.route('/user/<username>')
+def user(username):
+    user = User.query.filter_by(username=username).first()
+    if user is None:
+        abort(404)
+    return render_template('user.html', user=user)
+
+
+'''
 @main.route('/user/<name>')    # 动态路由　name参数动态生成响应
 def user(name):
     return render_template('user.html', name=name)   # name=name是关键字参数， 左边的name表示为参数名，就是模板中的占位符
@@ -37,7 +51,7 @@ def user(name):
                                                      # 在模板中使用的{{ name }} 是一种特殊的占位符，告诉模板引擎在这个位置的值从渲染模时的数据获取。
 
 # print app.url_map  可以用这个方法查看URL映射，其中的‘HEAD’, 'OPTIONS', 'GET'是请求方法，Flask指定了请求方法。HEAD和OPTIONS是Flask自动处理的。
-
+'''
 
 '''
 这是演示 decorators 装饰器例子的两个页面

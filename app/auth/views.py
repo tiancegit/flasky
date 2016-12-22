@@ -1,6 +1,7 @@
 #!coding:utf-8
 from flask import render_template, redirect, request, url_for, flash
 from flask_login import login_required, login_user, logout_user, current_user
+
 from . import auth
 from .forms import *
 from ..email import send_email
@@ -217,6 +218,13 @@ def change_email(token):
     else:
         flash('Invalid request')
     return redirect(url_for('main.index'))
+
+@auth.before_app_request
+def before_request():
+    if current_user.is_authenticated():
+        current_user.ping()
+        if not current_user.confirmed and request.endpoint[:5] != 'auth.':
+            return redirect(url_for('auth.unconfirmed'))
 
 
 
