@@ -14,7 +14,6 @@ from . import login_manager
 '''
 
 
-
 class Role(db.Model):   # 定义数据库模型
     __tablename__ = 'roles'
     id = db.Column(db.Integer, primary_key=True)
@@ -102,17 +101,18 @@ class User(UserMixin, db.Model):
     location = db.Column(db.String(64))
     about_out = db.Column(db.Text())
     member_since = db.Column(db.DateTime(), default=datetime.utcnow)
-    lats_seen = db.Column(db.DateTime(), default=datetime.utcnow())
+    last_seen = db.Column(db.DateTime(), default=datetime.utcnow())
 
     # last_seen字段创建时的初始值也是当前时间,但用户每次访问网站后,这个值都会被刷新,在user模型添加一个方法去完成这个操作.
 
-    if __name__ == '__main__':
-        def ping(self):
-            self.lats_seen = datetime.utcnow()
-            db.session.add(self)
+# 定义一个刷新用户最后访问时间。
 
-            # 每次收到用户的请求时都调用ping()方法,由于 auth蓝本中的before_app_request处理程序在每次请求前运行,所以能轻松实现这个需求
-            # 跳转到 app/auth/views.py
+    def ping(self):
+        self.lats_seen = datetime.utcnow()
+        db.session.add(self)
+
+        # 每次收到用户的请求时都调用ping()方法,由于 auth蓝本中的before_app_request处理程序在每次请求前运行,所以能轻松实现这个需求
+        # 跳转到 app/auth/views.py
 
     # 添加了Email字段， 在这个程序中，用户使用电子邮件地址登陆，因为相对用户名而言，用户更不容易忘记自己的电子邮件地址。
 
@@ -221,7 +221,7 @@ class User(UserMixin, db.Model):
     def __init__(self, **kwargs):
         super(User, self).__init__(**kwargs)
         if self.role is None:
-            if self.email == current_app.config['FLASK_ADMIN']:
+            if self.email == current_app.config['FLASKY_ADMIN']:
                 self.role = Role.query.filter_by(permissions=0xff).first()
             if self.role is None:
                 self.role = Role.query.filter_by(default=True).first()
@@ -245,6 +245,7 @@ class User(UserMixin, db.Model):
 # 这个对象继承自 AnonymousUserMixin类,并将其设为用户未登录是 current_user的值.这样程序不用先
 # 检查用户是否登录.就能自由调用 current_user.can() 和 current_user.is_administrator().
 
+
 class AnonymousUser(AnonymousUserMixin):
     def can(self, permissions):
         return False
@@ -254,6 +255,8 @@ class AnonymousUser(AnonymousUserMixin):
 login_manager.anonymous_user = AnonymousUser
 
 # 这段代码作用未明确
+
+
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))

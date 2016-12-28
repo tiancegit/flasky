@@ -29,6 +29,7 @@ def index():
         return redirect(url_for('.index'))
     return render_template('index.html', form=form, name=session.get('name'), known=session.get('known', False))
 
+
 ''' 为每个用户创建资料页面, 这个路由在main蓝本中添加,对于名为 john的用户,其资料页面的地址是 http://localhost:5000/user/john.
 这个视图函数会在数据库中搜索 URL 指定的用户名,如果找到,则渲染模板user.html,并把用户名作为参数传入模板,如果传入路由的用户名不存在,则返回404错误.
 user模板用过渲染保存在用户对象中的信息,这个模板的初始版本:app/templates/user.html
@@ -64,6 +65,8 @@ def user(name):
 def inject_permissions():
     return dict(Permission=Permission)
 '''
+
+# 举两个例子用于使用自定义的修饰器。  权限判断修饰器。
 
 
 @main.route('/admin')

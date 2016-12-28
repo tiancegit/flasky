@@ -23,6 +23,10 @@
             <div class="navbar-collapse collapse">
                 <ul class="nav navbar-nav">
                     <li><a href="{{ url_for('main.index') }}">Home</a> </li>
+                {# 把资料页面的链接包含在条件语句中是非常有必要的，因为未认证的用户也能看到导航条，但我们不应该让他们看到资料页面中的链链接。 #}
+                    {% if current_user.is_authenticated %}
+                    <li><a href="{{ url_for('main.user', username=current_user.username) }}">Profile</a></li>
+                    {% endif %}
                 </ul>
 {#判断条件中的变量 current_user 由 Flask-Login 定义,且在视图函数和模板中自动可用。
 这个变量的值是当前登录的用户,如果用户尚未登录,则是一个匿名用户代理对象。如果
@@ -30,6 +34,7 @@
 已经登录。#}
                 <ul class="nav navbar-nav navbar-right">
                     {% if current_user.is_authenticated %}
+
                         <li class="dropdown">
                         <a href="#" class="dropdown-toggle" data-toggle="dropdown">Account <b class="caret"></b></a>
                             <ul class="dropdown-menu">

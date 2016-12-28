@@ -5,7 +5,7 @@ from flask_login import login_required, login_user, logout_user, current_user
 from . import auth
 from .forms import *
 from ..email import send_email
-from ..models import User, db
+from ..models import User, db, Role
 
 ''' 这个函数创建了一个LoginForm对象，当请求类型是Get的时候，视图直接渲染模板，既显示表单，当表单在POST请求中提交时，Flask-wtf中的
 validate_on_submit()函数会验证表单数据，然后尝试登入用户。
@@ -33,8 +33,7 @@ def login():
     return render_template('auth/login.html', form=form)
 
 
-
-'''~~ 在生产服务器上，登录路由必须使用安全的HTTP。从而加密传送给服务器的表单数据，如果没有使用安全的Http，登录密令在传输的过程中可能会被截取，在服务器上花再多的
+''' 在生产服务器上，登录路由必须使用安全的HTTP。从而加密传送给服务器的表单数据，如果没有使用安全的Http，登录密令在传输的过程中可能会被截取，在服务器上花再多的
 的精力来保证密码安全都是无济于事。'''
 
 '''为了登出用户，这个视图函数调用Flask_login中的logout_user()函数，删除并重设了会话，随后会显示一个flash信息，确认这次操作，
@@ -89,6 +88,8 @@ def confirm(token):
         flash('The confirmation link is invalid or has expired.')
     return redirect(url_for('main.index'))
 
+
+
 '''
 每个程序都可以决定用户确认账户之前可以做些什么操作,比如允许未确认的用户登录,这个页面要求用户获取权限之前先确认账户.
 
@@ -97,13 +98,13 @@ def confirm(token):
 '''
 
 
-@auth.before_app_request
-def before_request():
-    if current_user.is_authenticated \
-            and not current_user.confirmed \
-            and request.endpoint[:5] != 'auth.' \
-            and request.endpoint != 'static':
-        return redirect(url_for('auth.unconfirmed'))
+# @auth.before_app_request
+# def before_request():
+#     if current_user.is_authenticated \
+#             and not current_user.confirmed \
+#             and request.endpoint[:5] != 'auth.' \
+#             and request.endpoint != 'static':
+#         return redirect(url_for('auth.unconfirmed'))
 
 
 @auth.route('/unconfirmed')
@@ -219,12 +220,16 @@ def change_email(token):
         flash('Invalid request')
     return redirect(url_for('main.index'))
 
+
+# 每次收到用户的请求是都要调用ping方法，由于 auth蓝本中before_app_request 处理程序都会在每次请求前运行，所以能很轻松地实现这个需求。
+
 @auth.before_app_request
 def before_request():
-    if current_user.is_authenticated():
+    if current_user.is_authenticated:    # is_authenticated 是一个属性而不是方法，应该去掉 is_authenticated后面的括号。
         current_user.ping()
         if not current_user.confirmed and request.endpoint[:5] != 'auth.':
             return redirect(url_for('auth.unconfirmed'))
+
 
 
 
