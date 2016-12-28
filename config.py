@@ -14,45 +14,7 @@ class Config:
     MAIL_SERVER = 'smtp.googlemail.com'
     MAIL_PORT = '587'
     MAIL_USE_TLS = True  # SMTP 服务器好像只需要TLS协议
-    MAIL_USERNAME = os{% extends "base.html" %}
-
-{% block page_content %}
-<div class="page-header">
-    <h1>{{ user.username }}</h1>
-    {% if user.name or user.location %}
-    <p>
-    {%  if user.name %}{{ user.name }}{% endif %}
-    {% if user.location %}
-    From <a href="http://map.google.com/?q={{ user.location }}">
-        {{ user.location }}
-    </a>
-    {% endif %}
-    </p>
-{% endif %}
-{% if current_user.is_administrator() %}
-<p>
-    <a href="mailto:{{ user.email }}">{{ user.email }}</a>
-</p>
-{% endif %}
-{% if user.about_me %}
-    <p>
-    {{ user.about_me }}
-    </p>
-{% endif %}
-<p>
-    Member since {{ moment(user.member_since).format("L") }}. <br />
-    Last seen {{ moment(user.last_seen).fromNow() }}
-</p>
-</div>
-{% endblock %}
-
-
-{# name和location字段在同一个<p>元素中渲染，只有至少定义了这两个字段中的一个时，<p>元素才会被创建。
-用户的location字段会被渲染成指向谷歌地图的查询链接。
-如果登录用户是管理员的话，那么显示用户的电子邮件地址，且渲染成mailto链接。#}
-
-{# 大多数用户都希望能够轻松地访问自己的资料页面，因此我们可以在导航条中添加一个链接,对于base进行修改>> #}
-.environ.get('MAIL_USERNAME')  # 千万不要把账户密码直接写入脚本,特别是准备开源的时候,为了保护账户信息,
+    MAIL_USERNAME = os.environ.get('MAIL_USERNAME')  # 千万不要把账户密码直接写入脚本,特别是准备开源的时候,为了保护账户信息,
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')  # 可以使用脚本从环境中导入敏感信息
     # app.config["MAIL_USE_SSl"] = True  #这是需要 SSL协议的设置，不需要：详细见https://support.google.com/a/answer/176600?hl=zh-Hans
 
