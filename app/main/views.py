@@ -1,9 +1,9 @@
 #!coding:utf-8
-from flask import render_template, session, redirect, url_for, current_app, abort
-from flask_login import login_required
+from flask import render_template, session, redirect, url_for, current_app, abort, flash
+from flask_login import login_required, current_user
 
 from . import main
-from .forms import NameForm
+from .forms import NameForm, EditProfileForm
 from .. import db
 from ..decorators import admin_required, permission_required
 from ..email import send_email
@@ -42,6 +42,33 @@ def user(username):
     if user is None:
         abort(404)
     return render_template('user.html', user=user)
+
+# 用户编辑资料的路由
+
+'''
+在显示表单之前，视图函数给所有字段设定了初始值。对于给定的字段，这一个工作是通过初始值赋值给form.<field-name>.date完成的。
+当form.validate_on_submit()返回False时，表单的三个字段都会使用current_user中保存的初始值。提交表单之后，表单字段的data属性中保存有
+更新后的值，因此可以将其赋值给用户对象中的各字段，然后再把用户对象添加到数据库会话中。
+为了方便用户能轻易找到编辑页面，可以在资料页面中添加一个链接。>>user.html
+'''
+
+
+@main.route('/edit-profile', methods=['GET', 'POST'])
+@login_required
+def edit_profile():
+    form = EditProfileForm()
+    if form.validate_on_submit():
+        current_user.name = form.name.data
+        current_user.location = form.location.data
+        current_user.about_me = form.about_me.data
+        db.session.add(current_user)
+        flash('Your profile has been update')
+        return redirect(url_for('.user', username=current_user.username))
+    form.name.data = current_user.name
+    form.location.data = current_user.location
+    form.about_me.data = current_user.about_me
+    return render_template('edit_profile.html', form=form)
+
 
 
 '''

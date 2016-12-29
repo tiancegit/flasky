@@ -99,7 +99,7 @@ class User(UserMixin, db.Model):
     # 所以每次需要生成默认值时,db.Column()都会调用指定的函数,member_since字段只需要默认值即可.
     name = db.Column(db.String(64))
     location = db.Column(db.String(64))
-    about_out = db.Column(db.Text())
+    about_me = db.Column(db.Text())
     member_since = db.Column(db.DateTime(), default=datetime.utcnow)
     last_seen = db.Column(db.DateTime(), default=datetime.utcnow())
 
