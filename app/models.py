@@ -13,6 +13,25 @@ from . import login_manager
 数据库模型
 '''
 
+'''
+程序的权限
+操  作                   位  值            说  明
+关注用户              0b00000001(0x01)  关注其他用户
+在他人的文章中发表评论  0b00000010(0x02)  在他人撰写的文章中发布评论
+写文章                0b00000100(0x04)  写原创文章
+管理他人发表的评论     0b00001000(0x08    查处他人发表的不当评论
+管理员权限            0b10000000(0x80)   管理网站
+表中的权限使用8位表示，现在只用了其中5位。其他3位可用于将来的补充。
+表中的权限可以使用下面的代码表示。
+'''
+
+class Permission:
+    FOLLOW = 0X01
+    COMMENT = 0X02
+    WRITE_ARTICLES = 0X04
+    MODERATE_COMMENTS = 0X08
+    ADMINISTER = 0X80
+
 
 class Role(db.Model):   # 定义数据库模型
     __tablename__ = 'roles'
@@ -36,7 +55,7 @@ class Role(db.Model):   # 定义数据库模型
                           Permission.COMMENT |
                           Permission.WRITE_ARTICLES |
                           Permission.MODERATE_COMMENTS, False),
-            'Administrator': (0Xff, False)
+            'Administrator': (0xff, False)
         }
         for r in roles:
             role = Role.query.filter_by(name=r).first()
@@ -63,25 +82,6 @@ class Role(db.Model):   # 定义数据库模型
 
 将角色手动添加到数据库既耗时也容易出错。作为替代。可以添加一个类，完成这个操作。
 '''
-'''
-程序的权限
-操  作                   位  值            说  明
-关注用户              0b00000001(0x01)  关注其他用户
-在他人的文章中发表评论  0b00000010(0x02)  在他人撰写的文章中发布评论
-写文章                0b00000100(0x04)  写原创文章
-管理他人发表的评论     0b00001000(0x08    查处他人发表的不当评论
-管理员权限            0b10000000(0x80)   管理网站
-表中的权限使用8位表示，现在只用了其中5位。其他3位可用于将来的补充。
-表中的权限可以使用下面的代码表示。
-'''
-
-
-class Permission:
-    FOLLOW = 0X01
-    COMMENT = 0X02
-    WRITE_ARTICLES = 0X04
-    MODERATE_COMMENTS = 0X08
-    ADMINISTER = 0X80
 
 
 class User(UserMixin, db.Model):

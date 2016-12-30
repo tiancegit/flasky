@@ -3,11 +3,11 @@ from flask import render_template, session, redirect, url_for, current_app, abor
 from flask_login import login_required, current_user
 
 from . import main
-from .forms import NameForm, EditProfileForm
+from .forms import NameForm, EditProfileForm, EditProfileAdminForm
 from .. import db
 from ..decorators import admin_required, permission_required
 from ..email import send_email
-from ..models import User, Permission
+from ..models import User, Role, Permission
 
 
 @main.route('/', methods=["GET", "POST"])
@@ -69,6 +69,45 @@ def edit_profile():
     form.about_me.data = current_user.about_me
     return render_template('edit_profile.html', form=form)
 
+# 管理员的资料编辑路由
+'''这个路由比较简单，普通用户的编辑路由具有相同基本的结构，在这个视图函数中，用户由id指定，因此可以使用Flask_SQLAlchemy提供的get_or_404
+()函数，如果提供的id不正确，则会返回404错误。
+
+用于选择用户角色的SelectFie.设定这个字段的初始值时，role_id被赋值给了field.role.date，这么做的原因在于choices属性中设定的元祖列表使用数字标示符
+表示各个选项，表单提交之后，id从字段的data属性中提取，并且查询的时会使用提取出来的id值加载角色对象，表单中声明SelField时使用coerce=int参数，
+其作用是保证这个字段的data属性是整数。
+
+为了连接到这个页面，需要在用户资料页面中添加一个链接按钮。'''
+
+
+@main.route('/edit_profile/<int:id>', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def edit_profile_admin(id):
+    user = User.query.get_or_404(id)
+    form = EditProfileAdminForm
+    if form.validate_on_submit():
+        user.email = form.email.data
+        user.username = form.username.data
+        user.confirmed = form.confirmed.data
+        user.role = Role.query.get(form.role.data)
+        user.name = form.name.data
+        user.location = form.location.data
+        user.about_me = form.about_me
+        db.session.add(user)
+        flash('The profile has been update')
+        return redirect(url_for('.user', username=user.username))
+    form.email.data = user.email
+    form.username.data = user.username
+    form.confirmed.data = user.confirmed
+    form.role.data = user.role
+    form.name.data = user.name
+    form.location.data = user.location
+    form.about_me.data = user.about_me
+    return render_template('edie_profile.html', form=form, user=user)
+
+
+
 
 
 '''
@@ -108,3 +147,8 @@ def for_admin_only():
 @permission_required(Permission.MODERATE_COMMENTS)
 def for_moderators_only():
     return 'For comment moderators!'
+
+
+@main.route('/test')
+def test():
+    return current_app.config['FLASKY_ADMIN']
