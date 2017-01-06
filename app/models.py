@@ -1,7 +1,6 @@
 #!coding:utf-8
-from datetime import datetime
 import hashlib
-
+from datetime import datetime
 
 from flask import current_app, request
 from flask_login import UserMixin, AnonymousUserMixin
@@ -272,6 +271,18 @@ class User(UserMixin, db.Model):
 
     '''这一实现会选择标准或者加密的gravatar URL基以匹配用户的安全需求，头像的URL有URL基，用户电子邮件地址的MD5散列值和各参数组成。
     而各参数都设定了默认值。有上述实现，可以在python shell中轻易生成头像的URL了'''
+
+# '文章模型,博客文章包括正文,时间戳,已经和User模型的一对多关系,body字段的定义类型是db.Text,所以不限制长度.' \
+# '在程序的首页要显示一个表单,以便让用户写博客,有一个多行文本输入框,用于输入博客文章的内容,还有一个提交按钮'
+
+
+class Post(db.Model):
+    __tablename__ = 'posts'
+    id = db.Column(db.Integer, Primary_key=True)
+    body = db.Column(db.Text)
+    timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
+    author_id = db.Column(db.Integer, db.ForeignKey("user.id"))
+
 
 
 
