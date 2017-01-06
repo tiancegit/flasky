@@ -1,7 +1,9 @@
 #!coding:utf-8
 from datetime import datetime
+import hashlib
 
-from flask import current_app
+
+from flask import current_app, request
 from flask_login import UserMixin, AnonymousUserMixin
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer    # 使用itsdangerous生成令牌
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -102,6 +104,7 @@ class User(UserMixin, db.Model):
     about_me = db.Column(db.Text())
     member_since = db.Column(db.DateTime(), default=datetime.utcnow)
     last_seen = db.Column(db.DateTime(), default=datetime.utcnow())
+    avatar_hash = db.Column(db.String(32))   # 生成头像时生成MD5值，计算量会非常大，由于用户的邮件地址的MD5值是不变的。可以保存在数据库中。
 
     # last_seen字段创建时的初始值也是当前时间,但用户每次访问网站后,这个值都会被刷新,在user模型添加一个方法去完成这个操作.
 
@@ -212,6 +215,9 @@ class User(UserMixin, db.Model):
         if self.query.filter_by(email=new_email).first() is not None:
             return False
         self.email = new_email
+        # 更新了电子邮件地址，则重新计算散列值。
+        self.avatar_hash = hashlib.md5(self.email.encode("utf-8")).hexdigest()
+
         db.session.add(self)
         return True
 
@@ -225,6 +231,9 @@ class User(UserMixin, db.Model):
                 self.role = Role.query.filter_by(permissions=0xff).first()
             if self.role is None:
                 self.role = Role.query.filter_by(default=True).first()
+        # 模型初始化的过程中会计算电子邮件的散列值，然后存入数据库。
+        if self.email is not None and self.avatar_hash is None:
+            self.avatar_hash = hashlib.md5(self.email.encode('utf-8')).hexdigest()
 
     # 为了简化角色和权限的实现过程,可在User模型中添加一个辅助方法,检查是否有指定的权限.
     # 检查用户是否有指定的权限.
@@ -240,6 +249,34 @@ class User(UserMixin, db.Model):
 
     def __repr__(self):
         return '<User %r>' % self.username
+
+    '''Gravatar查询字符串参数。
+    参数名     说明
+     s      图片大小。单位为像素
+     r      图片级别。可选值有"g". "pg". 'r'和"x"
+     d      没有注册gravatar服务的用户使用默认的图片生成方式，可选值有："404"，返回404错误。默认的图片的
+            URL;图片生成器"mm","identicon","monsterid", "wavatar", "retro" 或 "blank"之一
+     fd     强制使用默认头像
+     可以构建Gravatar URL的方法添加到User模型中，
+    '''
+
+    def gravatar(self, size=100, default='identicon', rating='g'):
+        if request.is_secure:
+            url = 'https://secure.gravtar.com/avatar'
+        else:
+            url = 'http://www.gravatar.com/avatar'
+        # 如果模型中没有，就和之前一样计算电子邮件地址的散列值。
+        hash = self.avatar_hash or hashlib.md5(self.email.encode('utf-8')).hexdigest()
+        return '{url}/{hash}?s={size}&d={default}&r={rating}'.format(
+            url=url, hash=hash, size=size, default=default, rating=rating)
+
+    '''这一实现会选择标准或者加密的gravatar URL基以匹配用户的安全需求，头像的URL有URL基，用户电子邮件地址的MD5散列值和各参数组成。
+    而各参数都设定了默认值。有上述实现，可以在python shell中轻易生成头像的URL了'''
+
+
+
+
+
 
 # 出于一致性考虑,定义了 AnonymousUser 类,并实现了 can() 和 is_administrator()方法
 # 这个对象继承自 AnonymousUserMixin类,并将其设为用户未登录是 current_user的值.这样程序不用先

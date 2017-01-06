@@ -150,5 +150,6 @@ def for_moderators_only():
 
 
 @main.route('/test')
-def test():
-    return current_app.config['FLASKY_ADMIN']
+def test_config():
+    a = current_app.config['MAIL_USERNAME'] + current_app.config['MAIL_PASSWORD'] +current_app.config['FLASKY_ADMIN']
+    return a
