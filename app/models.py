@@ -26,6 +26,7 @@ from . import login_manager
 表中的权限可以使用下面的代码表示。
 '''
 
+
 class Permission:
     FOLLOW = 0X01
     COMMENT = 0X02
