@@ -3,31 +3,34 @@ from flask import render_template, session, redirect, url_for, current_app, abor
 from flask_login import login_required, current_user
 
 from . import main
-from .forms import NameForm, EditProfileForm, EditProfileAdminForm
+from .forms import NameForm, EditProfileForm, EditProfileAdminForm, PostFrom
 from .. import db
 from ..decorators import admin_required, permission_required
 from ..email import send_email
-from ..models import User, Role, Permission
+from ..models import User, Role, Permission, Post
+
+# 函数把表单和完整的博客文章列表传给模板，文章列表按照时间戳进行降序排序，博客文章表单采取了惯常的处理方式，如果提交的数据通过
+# 验证就创建一个新的Post实例。在发表文章之前，要检查当前用户是否有写文章的权限。
 
 
 @main.route('/', methods=["GET", "POST"])
 def index():
-    form = NameForm()
-    if form.validate_on_submit():
-        user = User.query.filter_by(username=form.name.data).first()
-        if user is None:
-            user = User(username=form.name.data)
-            db.session.add(user)
-            session['known'] = False
-            if current_app.config['FLASK_ADMIN']:
-                send_email(current_app.config['FLASK_A'
-                                              'DMIN'], 'New User', 'mail/new_user', user=user)
-        else:
-            session['known'] = True
-        session['name'] = form.name.data
-        form.name.data = ''
+    form = PostFrom()
+    if current_user.can(Permission.WRITE_ARTICLES) and form.validate_on_submit():
+        post = Post(body=form.body.data, author=current_user._get_current_object())
+        db.session.add(post)
         return redirect(url_for('.index'))
-    return render_template('index.html', form=form, name=session.get('name'), known=session.get('known', False))
+    posts = Post.query.order_by(Post.timestamp.desc()).all()
+    return render_template('index1.html', form=form, posts=posts)
+
+'''
+注意：新文章对象的anthor属性值为表达式current_user.get_current_object()。变量current_user由Flask-Login提供，和所有上下文变量一样，
+也是通过线程内的代理对象实现，这个对象的表类似用户对象，但实际上却是一个轻度包装。包含真正的用户对象，数据库需要真实的用户对象，因此要调用
+_get_current_object()方法。
+
+这个表单显示在index.html模板中欢迎消息的下方，其后是博客文章列表，在这个博客文章列表中，首次尝试创建博客文章时间轴，按照时间顺序由新到旧
+列出数据库中所有的博客文章，对模板所做的改动如下。
+'''
 
 
 ''' 为每个用户创建资料页面, 这个路由在main蓝本中添加,对于名为 john的用户,其资料页面的地址是 http://localhost:5000/user/john.
@@ -42,6 +45,7 @@ def user(username):
     if user is None:
         abort(404)
     return render_template('user.html', user=user)
+
 
 # 用户编辑资料的路由
 

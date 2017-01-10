@@ -32,6 +32,7 @@ email 和username字段的构造方式和认证表单中的一样，但处理验
 就要保证新值不和其它用户的相应字段值重复。如果字段值没有变化，则应该跳过验证，为了实现这个逻辑，表单的构造函数接收用户对象作为参数，并将其保存在
 成员变量中，随后自定义的验证方法要使用这个用户对象。'''
 
+
 class EditProfileAdminForm(FlaskForm):
     email = StringField('Email', validators=[Required(), Length(1, 64), Email()])
     username = StringField('Username', validators=[Required(),
@@ -58,3 +59,11 @@ class EditProfileAdminForm(FlaskForm):
     def validate_username(self, field):
         if field.data != self.user.username and User.query.filter_by(username=field.data).first():
             raise ValidationError('Username already in use')
+
+# 这是首页要显示的表单，让用户写博客，包括一个多行文本输入狂，用于输入博客文章的内容。还有另一个提交按钮。
+# main/views中的视图函数，处理这个表单，并把之前发布过的博客文章传给模板。
+
+
+class PostFrom(FlaskForm):
+    body = TextAreaField("What's on you mind", validators=[Required()])
+    submit = SubmitField("Submit")

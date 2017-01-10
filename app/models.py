@@ -104,6 +104,7 @@ class User(UserMixin, db.Model):
     member_since = db.Column(db.DateTime(), default=datetime.utcnow)
     last_seen = db.Column(db.DateTime(), default=datetime.utcnow())
     avatar_hash = db.Column(db.String(32))   # 生成头像时生成MD5值，计算量会非常大，由于用户的邮件地址的MD5值是不变的。可以保存在数据库中。
+    posts = db.relationship("Post", backref="author", lazy="dynamic")  # 这是和Post模型之间的一对多关系。
 
     # last_seen字段创建时的初始值也是当前时间,但用户每次访问网站后,这个值都会被刷新,在user模型添加一个方法去完成这个操作.
 
@@ -278,15 +279,10 @@ class User(UserMixin, db.Model):
 
 class Post(db.Model):
     __tablename__ = 'posts'
-    id = db.Column(db.Integer, Primary_key=True)
+    id = db.Column(db.Integer, primary_key=True)
     body = db.Column(db.Text)
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
-    author_id = db.Column(db.Integer, db.ForeignKey("user.id"))
-
-
-
-
-
+    author_id = db.Column(db.Integer, db.ForeignKey("users.id"))
 
 
 # 出于一致性考虑,定义了 AnonymousUser 类,并实现了 can() 和 is_administrator()方法
