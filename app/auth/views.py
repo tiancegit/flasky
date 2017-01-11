@@ -227,10 +227,10 @@ def change_email(token):
 def before_request():
     if current_user.is_authenticated:    # is_authenticated 是一个属性而不是方法，应该去掉 is_authenticated后面的括号。
         current_user.ping()
-        if not current_user.confirmed and request.endpoint[:5] != 'auth.':
+        if not current_user.confirmed \
+                and request.endpoint[:5] != 'auth.' \
+                and request.endpoint != "static":
             return redirect(url_for('auth.unconfirmed'))
-
-
 
 
 @auth.route('/secret')

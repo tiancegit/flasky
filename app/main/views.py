@@ -1,5 +1,5 @@
 #!coding:utf-8
-from flask import render_template, session, redirect, url_for, current_app, abort, flash
+from flask import render_template, session, redirect, url_for, current_app, abort, flash, request
 from flask_login import login_required, current_user
 
 from . import main
@@ -20,8 +20,14 @@ def index():
         post = Post(body=form.body.data, author=current_user._get_current_object())
         db.session.add(post)
         return redirect(url_for('.index'))
-    posts = Post.query.order_by(Post.timestamp.desc()).all()
-    return render_template('index1.html', form=form, posts=posts)
+#    posts = Post.query.order_by(Post.timestamp.desc()).all()
+    # 渲染的页数从请求的查询字符串(requset.args)中获取，如果没有明确指定，则默认渲染第一页，参数type=int保证参数无法转换成整数时，返回默认值。
+    page = request.args.get('page', 1, type=int)
+    pagination = Post.query.order_by(Post.timestamp.desc()).paginate(
+        page, per_page=current_app.config['FLASK_POSTS_PER_PAGE'],
+        error_out=False)
+    posts = pagination.items
+    return render_template('index1.html', form=form, posts=posts, pagination=pagination)
 
 '''
 注意：新文章对象的anthor属性值为表达式current_user.get_current_object()。变量current_user由Flask-Login提供，和所有上下文变量一样，
@@ -84,7 +90,7 @@ def edit_profile():
 为了连接到这个页面，需要在用户资料页面中添加一个链接按钮。'''
 
 
-@main.route('/edit_profile/<int:id>', methods=['GET', 'POST'])
+@main.route('/edit-profile/<int:id>', methods=['GET', 'POST'])
 @login_required
 @admin_required
 def edit_profile_admin(id):
@@ -97,7 +103,7 @@ def edit_profile_admin(id):
         user.role = Role.query.get(form.role.data)
         user.name = form.name.data
         user.location = form.location.data
-        user.about_me = form.about_me
+        user.about_me = form.about_me.data
         db.session.add(user)
         flash('The profile has been update')
         return redirect(url_for('.user', username=user.username))
@@ -108,7 +114,7 @@ def edit_profile_admin(id):
     form.name.data = user.name
     form.location.data = user.location
     form.about_me.data = user.about_me
-    return render_template('edie_profile.html', form=form, user=user)
+    return render_template('edit_profile.html', form=form, user=user)
 
 
 

@@ -17,7 +17,8 @@ class Config:
     MAIL_USERNAME = os.environ.get('MAIL_USERNAME')  # 千万不要把账户密码直接写入脚本,特别是准备开源的时候,为了保护账户信息,
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')  # 可以使用脚本从环境中导入敏感信息
     # app.config["MAIL_USE_SSl"] = True  #这是需要 SSL协议的设置，不需要：详细见https://support.google.com/a/answer/176600?hl=zh-Hans
-
+    # 首页每页显示的记录
+    FLASK_POSTS_PER_PAGE = 10
     @staticmethod
     def init_app(app):
         pass

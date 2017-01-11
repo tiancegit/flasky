@@ -112,7 +112,7 @@ class User(UserMixin, db.Model):
 # 定义一个刷新用户最后访问时间。
 
     def ping(self):
-        self.lats_seen = datetime.utcnow()
+        self.last_seen = datetime.utcnow()
         db.session.add(self)
 
         # 每次收到用户的请求时都调用ping()方法,由于 auth蓝本中的before_app_request处理程序在每次请求前运行,所以能轻松实现这个需求
@@ -274,6 +274,34 @@ class User(UserMixin, db.Model):
     '''这一实现会选择标准或者加密的gravatar URL基以匹配用户的安全需求，头像的URL有URL基，用户电子邮件地址的MD5散列值和各参数组成。
     而各参数都设定了默认值。有上述实现，可以在python shell中轻易生成头像的URL了'''
 
+    # 添加到User的类方法，用于生成虚拟数据。P119
+
+    @staticmethod
+    def generate_fake(count=100):
+        from sqlalchemy.exc import IntegrityError
+        from random import seed
+        import forgery_py
+
+        seed()
+        for i in range(count):
+            u = User(email=forgery_py.internet.email_address(),
+                     username=forgery_py.internet.user_name(True),
+                     password=forgery_py.lorem_ipsum.word(),
+                     confirmed=True,
+                     name=forgery_py.name.full_name(),
+                     location=forgery_py.address.city(),
+                     about_me=forgery_py.lorem_ipsum.sentence(),
+                     member_since=forgery_py.date.date(True))
+            db.session.add(u)
+            try:
+                db.session.commit()
+            except IntegrityError:
+                db.session.rollback()
+
+        # 用户的邮箱地址，和用户名必须是唯一的，但forgeryPy随机生成信息，用重复的风险，虽然出现的几率很小，提交数据库时会抛出异常。
+        # 处理方式是，在继续操作之前回滚会话，在循环中生成重复内容时不把用户写入数据库。因此生成的虚拟用户总数可能会比预期的少。
+
+
 # '文章模型,博客文章包括正文,时间戳,已经和User模型的一对多关系,body字段的定义类型是db.Text,所以不限制长度.' \
 # '在程序的首页要显示一个表单,以便让用户写博客,有一个多行文本输入框,用于输入博客文章的内容,还有一个提交按钮'
 
@@ -284,6 +312,25 @@ class Post(db.Model):
     body = db.Column(db.Text)
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
     author_id = db.Column(db.Integer, db.ForeignKey("users.id"))
+
+    # 随机生成文章的时要为每篇文章随机指定一个用户，为此，我们使用offset()查询过滤器，这个过滤器会跳过参数中指定的记录数量，通过设定一个随机的
+    # 偏移值，再调用first()方法，就能每次都能获得一个不同的随机用户。
+
+    @staticmethod
+    def generate_fake(count=100):
+        from random import seed, randint
+        import forgery_py
+
+        seed()
+        user_count = User.query.count()
+        for i in range(count):
+            u = User.query.offset(randint(0, user_count - 1)).first()
+            p = Post(body=forgery_py.lorem_ipsum.sentences(randint(1, 3)),
+                     timestamp=forgery_py.date.date(True),
+                     author=u)
+            db.session.add(p)
+            db.session.commit()
+
 
 
 # 出于一致性考虑,定义了 AnonymousUser 类,并实现了 can() 和 is_administrator()方法
