@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% import 'bootstrap/wtf.html' as wtf %}
+{% import "_macros.html" as macros %}
 
 {% block title %}Flasky{% endblock %}
 
@@ -16,27 +17,13 @@
     {{ wtf.quick_form(form) }}
 {% endif %}
 </div>
-<ul class="posts">
-{% for post in posts %}
-<li class="post">
-{# 博客文章列表通过HTML无序列表实现，并指定一个CSS类。从而使格式更精美。页面左侧会显示作者的小头像。头像和作者用户名都能渲染成链接形式，链接到用户资料页面。 #}
-        <div class="post-thumbnail">
-            <a href="{{ url_for('.user', username=post.author.username) }}">
-                <img class="img-rounded profile-thumbnail" src="{{ post.author.gravatar(size=40) }}">
-            </a>
-        </div>
-        <div class="post-content">
-            <div class="post-date">{{ moment(post.timestamp).fromNow() }}</div>
-            <div class="post-author"><a href="{{ url_for('.user', username=post.author.username) }}">{{ post.author.username }}</a></div>
-            <div class="post-body">{{ post.body }}</div>
-        </div>
-    </li>
-    {% endfor %}
-</ul>
+{% include "_posts.html" %}
+{% if pagination %}
+<div class="pagination">
+    {{ macros.pagination_widget(pagination, '.index') }}
+</div>
+{% endif %}
 {% endblock %}
-
-
-
 
 
 

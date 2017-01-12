@@ -1,9 +1,39 @@
 {% macro pagination_widget(pagination, endpoint) %}
 <ul class="pagination">
-    <li {% if not pagination.has-prev %} class="disabled"{% endif %}>
+    <li {% if not pagination.has_prev %} class="disabled"{% endif %}>
     <a href="{% if pagination.has_prev %}{{ url_for(endpoint, page = pagination.page - 1, **kwargs) }} {% else %}
         #{% endif %}">&laquo;</a>
     </li>
     {%  for p in pagination.iter_page %}
-
+        {% if p %}
+            {% if p == pagination.page %}
+            <li class="active">
+                <a href="{{ url_for(endpoint, page = p, **kwargs) }}">{{ p }}</a>
+            </li>
+            {% else %}
+            <li>
+                <a href="{{ url_for(endpoint, page = p, **kwargs) }}">{{ p }}</a>
+            </li>
+            {% endif %}
+        {% else %}
+        <li class="disabled"><a href="#">&hellip;</a></li>
+        {% endif %}
+    {% endfor %}
+    <li{% if not pagination.has_next %} class="disabled" {% endif %}>
+        <a href="{% if pagination.has_next %} {{ url_for(endpoint, page = pagination.page + 1, **kwargs) }}]
+            {% else %}#{% endif %}">&raquo;
+        </a>
+    </li>
 </ul>
+{% endmacro %}
+
+
+
+{# 这个宏创建了一个bootstrap分页元素，即有一个特殊样式的无序列表，其中定义了下述页面链接。
+   “上一页” 链接，如果当前页是第一页，则为这个链接加上disable类。
+   分页对象的iter_pages()迭代器返回的是所有的页面链接。这些页面被渲染成具有明确页数的链接，页数在URL——for()参数中指定，
+        当前显示的页面使用activeCss类高亮显示，页数代码中的间隔使用省略号表示。
+   “下一页” 链接，如果当前页是最后一页，则会禁用这个链接。
+   Jinja2宏参数列表中不用加入 **Kwargs 即可接收关键字参数，分页宏把接收到的所有关键字参数都传给了生成分页链接的Url_for()方法
+   这种方式可以在路由中使用，例如包含一个动态部分的资料特。
+   pageination_wigget宏可以放在index.html和User.html中的_posts.html模板后面。#}

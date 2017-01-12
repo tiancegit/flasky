@@ -1,20 +1,7 @@
-{% extends "base.html" %}
-{% import "bootstrap/wtf.html" as wtf %}
-
-{% block title %}Flasky{% endblock %}
-
-{% block page_content %}
-<div class="page-header">
-    <h1>Hello, {% if current_user.is_authenticated %}{{ current_user.username }}{% else %}Stranger{% endif %}!</h1>
-</div>
-<div>
-    {% if current_user.can(Permission.WRITE_ARTICLES) %}
-    {{ wtf.quick_form(form) }}
-    {% endif %}
-</div>
 <ul class="posts">
-    {% for post in posts %}
-    <li class="post">
+{% for post in posts %}
+<li class="post">
+{# 博客文章列表通过HTML无序列表实现，并指定一个CSS类。从而使格式更精美。页面左侧会显示作者的小头像。头像和作者用户名都能渲染成链接形式，链接到用户资料页面。 #}
         <div class="post-thumbnail">
             <a href="{{ url_for('.user', username=post.author.username) }}">
                 <img class="img-rounded profile-thumbnail" src="{{ post.author.gravatar(size=40) }}">
@@ -28,4 +15,3 @@
     </li>
     {% endfor %}
 </ul>
-{% endblock %}

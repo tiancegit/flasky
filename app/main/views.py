@@ -27,7 +27,7 @@ def index():
         page, per_page=current_app.config['FLASK_POSTS_PER_PAGE'],
         error_out=False)
     posts = pagination.items
-    return render_template('index1.html', form=form, posts=posts, pagination=pagination)
+    return render_template('index.html', form=form, posts=posts, pagination=pagination)
 
 '''
 注意：新文章对象的anthor属性值为表达式current_user.get_current_object()。变量current_user由Flask-Login提供，和所有上下文变量一样，
