@@ -10,6 +10,9 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from . import db
 from . import login_manager
 
+from markdown import markdown
+import bleach
+
 '''
 数据库模型
 '''
@@ -312,6 +315,7 @@ class Post(db.Model):
     body = db.Column(db.Text)
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
     author_id = db.Column(db.Integer, db.ForeignKey("users.id"))
+    body_html = db.Column(db.Text)
 
     # 随机生成文章的时要为每篇文章随机指定一个用户，为此，我们使用offset()查询过滤器，这个过滤器会跳过参数中指定的记录数量，通过设定一个随机的
     # 偏移值，再调用first()方法，就能每次都能获得一个不同的随机用户。
@@ -331,6 +335,25 @@ class Post(db.Model):
             db.session.add(p)
             db.session.commit()
 
+    def on_changed_body(target, value, oldvalue, initiator):
+        allowed_tags = ['a', 'abbr', 'acronym', 'b', 'blockquote', 'code',
+                        'em', 'i', 'li', 'ol', 'pre', 'strong',
+                        'ul', 'h1', 'h2', 'h3', 'p']
+        target.body_html = bleach.linkify(bleach.clean(
+            markdown(value, outpu_format='html'),
+            tags=allowed_tags, strip=True))
+
+db.event.listen(Post.body, 'set', Post.on_changed_body)
+
+''' 把body的md文本转换成HTML，分三步完成，首先markdown函数先把md文本转换成HTML.然后把得到的结果和允许使用的html标签列表传给clean() 函数
+clean函数删除所有不在白名单中的标签，转换的最后一步，由linkify()函数完成，这个函数由Bleach提供，把纯文本的URL转换成适当的<a>链接。
+最后一步是很有必要的。 因为MarkDown规范没有为自动生成链接提供官方支持。PageDown以扩展的形式实现了这个功能，因此在服务器上要调用这个函数
+
+最后，如果post.body.html字段存在，还要把post.body换成post.body_html'''
+
+
+# on_changed_body函数注册在body字段上，是SQLALchemy “set” 事件的监听程序，只要这个类实例设了新值，函数会自动被调用，
+# 函数把body字段的文本渲染成HTML格式，结果保存在body_html中，自动且高效完成Markdown文本到HTML的转换。
 
 
 # 出于一致性考虑,定义了 AnonymousUser 类,并实现了 can() 和 is_administrator()方法

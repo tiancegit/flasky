@@ -116,6 +116,37 @@ def edit_profile_admin(id):
     form.about_me.data = user.about_me
     return render_template('edit_profile.html', form=form, user=user)
 
+'''用户会希望在社交网络中分享某篇文章的链接，为此，每篇文章都需要有一个专门的页面，使用唯一的URL引用，支持固定链接功能的路由和视图函数如下所示，
+博客文章的URL使用插入数据库时分配的唯一id字段创建，某些类型的程序会使用可读性高的字符串而不是数字ID构建固定链接。除了数字ID之外，
+程序还为了博客文章起了个独特的字符串别名，如程序员问答网站http://stackoverflow.com中的问题链接，采取了问题的英文单词分词进行链接的构建。
+可读性和浏览引擎的收录都可以很优。'''
+
+@main.route('/post/<int:id>')
+def post(id):
+    post = Post.query.get_or_404(id)
+    return render_template('post.html', posts=[post])
+
+# 视图函数的作用是只允许博客文章的作者编辑文章，但管理员例外，管理员能编辑所有用户的文章，如果用户试图编辑其它用户的文章，视图函数会返回403错误，
+# 这个使用的post表单和首页用的是同一个。
+
+
+@main.route('/edit/<int:id>', methods=['GET', 'POST'])
+@login_required
+def edit(id):
+    post = Post.query.get_or_404(id)
+    if current_user != post.author and \
+            not current_user.can(Permission.ADMINISTER):
+        abort(403)
+    form = PostFrom()
+    if form.validate_on_submit():
+        post.body = form.body.data
+        db.session.add(post)
+        flash('The post has updated.')
+        return redirect(url_for('main.post', id=post.id))
+    form.body.data = post.body
+    return render_template('edit_post.html', form=form)
+
+
 
 
 
