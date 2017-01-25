@@ -5,7 +5,7 @@ basedir = os.path.abspath(os.path.dirname(__file__))  # 获取文件路径
 
 
 class Config:
-    SECRET_KEY = os.environ.get('SECRET_KEY') or 'lee'
+    SECRET_KEY = os.environ.get('SECRET_KEY') or 'lee'   # 防止跨域攻击的加密字符串.
     SQLALCHEMY_COMMIT_ON_TEARDOWN = True
     FLASKY_MAIL_SUBJECT_PREFIX = '[Flasky]'
     FLASKY_MAIL_SENDER = 'Flasky Admin <flasky@example.com>'
@@ -17,8 +17,13 @@ class Config:
     MAIL_USERNAME = os.environ.get('MAIL_USERNAME')  # 千万不要把账户密码直接写入脚本,特别是准备开源的时候,为了保护账户信息,
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')  # 可以使用脚本从环境中导入敏感信息
     # app.config["MAIL_USE_SSl"] = True  #这是需要 SSL协议的设置，不需要：详细见https://support.google.com/a/answer/176600?hl=zh-Hans
-    # 首页每页显示的记录
+    # 首页文章每页显示的记录
     FLASK_POSTS_PER_PAGE = 10
+    # 关注的每页显示的记录数目
+    FLASKY_FOLLOWERS_PER_PAGE = 10
+    # 配置参数, 使用本地的Bootstrap资源.
+    BOOTSTRAP_SERVE_LOCAL = True
+
     @staticmethod
     def init_app(app):
         pass

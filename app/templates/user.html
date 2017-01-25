@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% import '_macros.html' as macros %}
 
 {% block title %}Flasky - {{ user.username }}{% endblock %}
 
@@ -20,6 +21,21 @@
     {% endif %}
     {% if user.about_me %}<p>{{ user.about_me }}</p>{% endif %}
     <p>Member since {{ moment(user.member_since).format('L') }}. Last seen {{ moment(user.last_seen).fromNow() }}.</p>
+    <p>{{ user.posts.count() }} blog posts.</p>
+    <p>
+        {% if current_user.can(Permission.FOLLOW) and user != current_user %}
+        {% if not current_user.is_following(user) %}
+        <a href="{{ url_for('.follow', username=user.username) }}" class="btn btn-primary">Follow</a>
+        {% else %}
+        <a href="{{ url_for('.unfollow', username=user.username) }}" class="btn btn-default">Unfollow</a>
+        {% endif %}
+    {% endif %}
+    <a href="{{ url_for('.followers', username=user.username) }}">Followers: <span class="badge">{{ user.followers.count() }}</span></a>
+    <a href="{{ url_for('.followed_by', username=user.username) }}">Following: <span class="badge">{{ user.followed.count() }}</span></a>
+    {% if current_user.is_authenticated and user != current_user and user.is_following(current_user) %}
+    <span class="label label-default">Follows you</span>
+    {% endif %}
+    </p>
     <p>
         {% if user == current_user %}
         <a class="btn btn-default" href="{{ url_for('.edit_profile') }}">Edit Profile</a>
@@ -30,6 +46,13 @@
     </p>
     </div>
 </div>
+<h3>Post by {{ user.username }}</h3>
+    {% include '_posts.html' %}
+{% if pagination %}
+    <div>
+    {{ macros.pagination_widget(pagination, '.user', username=user.username) }}
+    </div>
+{% endif %}
 {% endblock %}
 
 {# name和location字段在同一个<p>元素中渲染，只有至少定义了这两个字段中的一个时，<p>元素才会被创建。
@@ -37,3 +60,7 @@
 如果登录用户是管理员的话，那么显示用户的电子邮件地址，且渲染成mailto链接。#}
 
 {# 大多数用户都希望能够轻松地访问自己的资料页面，因此我们可以在导航条中添加一个链接,对于base进行修改>> #}
+
+
+{# 如果用户查看一个尚未关注的资料页,页面要显示一个"Follow"(关注)的按钮. 如果查看已关注的用户资料页,则显示"Unfollow " (取消关注)按钮.而且页面中.
+最好能显示出关注者和被关注者的数量.再列出关注和被关注者的列表. 并在相应的用户页显示'follows you'(关注了你)标志. #}

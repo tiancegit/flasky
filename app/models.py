@@ -2,16 +2,15 @@
 import hashlib
 from datetime import datetime
 
+import bleach
 from flask import current_app, request
 from flask_login import UserMixin, AnonymousUserMixin
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer    # 使用itsdangerous生成令牌
+from markdown import markdown
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from . import db
 from . import login_manager
-
-from markdown import markdown
-import bleach
 
 '''
 数据库模型
@@ -28,6 +27,16 @@ import bleach
 表中的权限使用8位表示，现在只用了其中5位。其他3位可用于将来的补充。
 表中的权限可以使用下面的代码表示。
 '''
+
+
+# 这是关联表
+
+
+class Follow(db.Model):
+    __tablename__ = 'follows'
+    follower_id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)
+    followed_id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
 
 
 class Permission:
@@ -112,6 +121,36 @@ class User(UserMixin, db.Model):
 
     # last_seen字段创建时的初始值也是当前时间,但用户每次访问网站后,这个值都会被刷新,在user模型添加一个方法去完成这个操作.
 
+    # 多对多关系分拆出来的两个基本一对多关系.而且要定义成标准关系.
+    followed = db.relationship('Follow', foreign_keys=[Follow.follower_id],
+                               backref=db.backref('follower', lazy='joined'),
+                               lazy='dynamic',
+                               cascade='all, delete-orphan')
+    followers = db.relationship('Follow', foreign_keys=[Follow.followed_id],
+                                backref=db.backref('followed', lazy='joined'),
+                                lazy='dynamic',
+                                cascade='all, delete-orphan')
+
+    # 这段代码中,followed和followers关系都定义为单独的一对多关系.注意了,为了消除外键间的歧义,定义关系时必须使用可选参数foreign_keys
+    # 指定的外键.而且,db.backref()参数并不是指定这两个参数之间的引用关系.而是回引 Follow 模型. 回引中的lazy参数指定为joined.这个lazy
+    # 模式可以实现从联结查询中加载相关对象,例如,某个用户关注了100个用户,调用user.followed.all()后会返回一个列表.其中包含100个follow
+    # 实例,每一个实例的follower 和 followed回引属性都指向相应的用户,设定为lazy='joined'模式,就可以在一次数据库查询中完成这些操作.
+    # 如果,lazy的设为select,那么首次访问follower 和 followed 属性时才会加载对应的用户,而且每个属性都需要单独的一个查询.这就意味着获取
+    # 全部被关注的用户时需要增加100次额外的数据库查询.
+
+    '''
+    这两个关系中,User一侧设定的lazy参数作用不一样,lazy参数都在'一'这一侧设定,返回的是'多'的这一侧中的记录.上述代码使用的是 dynamic.
+    因此关系属性不会直接返回记录,而是返回查询对象.所以在执行查询之前还可以添加额外的过滤器.
+    '''
+
+    '''
+    cascade 参数配置在父对象上执行的操作对相关对象的影响.比如,层叠选项可设为:将用户添加到数据库会话后,要自动把所有关系的对象添加到会话中,
+    层叠选项的默认值能满足大多数情况下的需求.但对这个多对多关来说却不合用.删除对象时,默认的层叠行为是把所有相关对象的外键设为空值.但在
+    关联表中.删除记录后的正确行为应该是把指向该实体也删除.因为这样能有效销毁链接,这就是层叠选项值delete-orphan的作用.
+
+    cascade 参数的值是一组由逗号分隔的分隔的层叠选项,这看起来可能让人有点困惑,但 all 表示除了delete-orphan 之外的层叠选项,设为all.
+    delete-orphan的意思是启用所有的默认层叠选项,而且还要删除孤儿选项.
+    '''
 # 定义一个刷新用户最后访问时间。
 
     def ping(self):
@@ -276,6 +315,41 @@ class User(UserMixin, db.Model):
 
     '''这一实现会选择标准或者加密的gravatar URL基以匹配用户的安全需求，头像的URL有URL基，用户电子邮件地址的MD5散列值和各参数组成。
     而各参数都设定了默认值。有上述实现，可以在python shell中轻易生成头像的URL了'''
+
+    '''
+    程序现在要处理两个一对多关系,以便实现多对多关系.由于这些操作经常需要重复执行,最好在user模型中为所有可能的操作定义辅助方法.用于控制关注关系
+    的四个方法.
+    '''
+
+    # Follow方法手动把follow方法实例插入关联表.从而把关联者和被关联者连接起来.并让程序有机会设定自定义字段的值.联接在一起的两个用户被手动
+    # 传入follow类的构造器.创建一个Follow新实例.然后像往常一样.把这个实例对象添加到数据库会话中.注意,这里无需手动设定timestamp字段.
+    # 因为定义字段的时指定了默认值,即是当前日期和时间.
+    def follow(self, user):
+        if not self.is_following(user):
+            f = Follow(follower=self, followed=user)
+            db.session.add(f)
+
+    # unfollow()方法使用了follow关系找到了联接用户和被关注的用户的follow实例.若要销毁这两个用户之间的联接.只需要删除这个follow对象即可.
+
+    def unfollow(self, user):
+        f = self.followed.filter_by(followed_id=user.id).first()
+        if f:
+            db.session.delete(f)
+
+    # is_following()方法和is_followed_by()方法,分别在左右两边的一对多关系中搜索指定用户.如果找到了就返回True.
+
+    def is_following(self, user):
+        return self.followed.filter_by(followed_id=user.id).first() is not None
+
+    def is_followed_by(self, user):
+        return self.followers.filter_by(follower_id=user.id).first() is not None
+
+    # 定义一个联结查询,用于让用户选择查看关注用户发布的博客文章
+    @property
+    def followed_posts(self):
+        return Post.query.join(Follow, Follow.followed_id == Post.author_id).filter(Follow.follower_id == self.id)
+
+    # flowed_posts() 方法定义为属性.因此调用时无需加().如此一来.所有关系的句法都是一样了.
 
     # 添加到User的类方法，用于生成虚拟数据。P119
 

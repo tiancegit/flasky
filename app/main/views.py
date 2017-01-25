@@ -1,13 +1,12 @@
 #!coding:utf-8
-from flask import render_template, session, redirect, url_for, current_app, abort, flash, request
+from flask import render_template, redirect, url_for, current_app, abort, flash, request
 from flask_login import login_required, current_user
 
 from . import main
-from .forms import NameForm, EditProfileForm, EditProfileAdminForm, PostFrom
+from .forms import EditProfileForm, EditProfileAdminForm, PostFrom
 from .. import db
 from ..decorators import admin_required, permission_required
-from ..email import send_email
-from ..models import User, Role, Permission, Post
+from ..models import User, Role, Permission, Post,`
 
 # 函数把表单和完整的博客文章列表传给模板，文章列表按照时间戳进行降序排序，博客文章表单采取了惯常的处理方式，如果提交的数据通过
 # 验证就创建一个新的Post实例。在发表文章之前，要检查当前用户是否有写文章的权限。
@@ -121,6 +120,7 @@ def edit_profile_admin(id):
 程序还为了博客文章起了个独特的字符串别名，如程序员问答网站http://stackoverflow.com中的问题链接，采取了问题的英文单词分词进行链接的构建。
 可读性和浏览引擎的收录都可以很优。'''
 
+
 @main.route('/post/<int:id>')
 def post(id):
     post = Post.query.get_or_404(id)
@@ -147,6 +147,83 @@ def edit(id):
     return render_template('edit_post.html', form=form)
 
 
+# 这个视图函数先加载请求的用户,确保用户存在且当前登录用户还没有关注这个用户.然后调用User模型中定义的辅助方法.用于联结两个用户.
+# /unfollow/<username>路由的实现方式类似.
+
+
+@main.route('/folllow/<username>')
+@login_required
+@permission_required(Permission.FOLLOW)
+def follow(username):
+    user= User.query.filter_by(username=username).first()
+    if user is None:
+        flash('Invalid user.')
+        return redirect(url_for(".index"))
+    if current_user.is_following(user):
+        flash('You are already following this user.')
+        return redirect(url_for('.user', username=username))
+    current_user.follow(user)
+    flash('You are now following %s.' % username)
+    return redirect(url_for('.user', username=username))
+
+# 用户在其它用户资料页点击关注着数量后,将调用/follower/<username>路由.这个路由的实现如实例所示.
+
+# unfollow路由
+
+
+@main.route('/unfollow/<username>')
+@login_required
+@permission_required(Permission.FOLLOW)
+def unfollow(username):
+    user = User.query.filter_by(username=username).first()
+    if user is None:
+        flash('Invalid user')
+        return redirect(url_for('.index'))
+    if not current_user.is_following(user):
+        flash('You are not following this user.')
+        return redirect(url_for('.user', username=username))
+    current_user.unfollow(user)
+    flash('You are not following %s anymore.' % username)
+    return redirect(url_for('.user', username=username))
+
+
+'''
+这个函数加载并验证用户.然后使用十一章介绍的技术,分页展示该用户的followers关系.由于查询关系者返回的是Follow实例列表.为了渲染方便.
+将其转换成一个新列表,列表中的各个元素都包含user和timestamp字段.
+渲染关注着列表的模板可以写得通用些.以便渲染关注的用户和被关注的用户.模板接收的参数包括用户对象,分页链接使用的端点.分页对象和查询结果列表.
+followed_by的端点的实现过程几乎一样.唯一的区别在于,用户列表从user.followed关系中获取.传入模板的参数也要进行相应调整.
+'''
+
+
+@main.route('/followers/<username>')
+def followers(username):
+    user = User.query.filter_by(username=username).first()
+    if user is None:
+        flash('Invalid user.')
+        return redirect(url_for('.index'))
+    page = request.args.get('page', 1, type=int)
+    pagination = user.followers.paginate(page, per_page=current_app.config["FLASKY_FOLLOWERS_PER_PAGE"], error_out=False)
+    follows = [{'user': item.follower, 'timestamp': item.timestamp} for item in pagination.items]
+    return render_template('followers.html', user=user, title='Followers of',
+                           endpoint='.followers', pagination=pagination, follows=follows)
+
+#
+
+
+@main.route('/followed-by/<username>')
+def followed_by(username):
+    user = User.query.filter_by(username=username).first()
+    if user is None:
+        flash('Invalid user.')
+        return redirect(url_for('.index'))
+    page = request.args.get('page', 1, type=int)
+    pagination = user.followed.paginate(page,
+                                        per_page=current_app.config['FLASKY_FOLLOWERS_PER_PAGE'],
+                                        error_out=False)
+    follows = [{'user': item.followed, 'timestamp': item.timestamp} for item in pagination.items]
+    return render_template('followers.html', user=user, title='Followed by',
+                           endpoint=".followed_by", pagination=pagination,
+                           follows=follows)
 
 
 
