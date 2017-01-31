@@ -1,15 +1,21 @@
 #!coding:utf-8
-from flask import render_template, redirect, url_for, current_app, abort, flash, request
+from flask import render_template, redirect, url_for, current_app, abort, flash, request, make_response
 from flask_login import login_required, current_user
 
 from . import main
 from .forms import EditProfileForm, EditProfileAdminForm, PostFrom
 from .. import db
 from ..decorators import admin_required, permission_required
-from ..models import User, Role, Permission, Post,`
+from ..models import User, Role, Permission, Post
 
 # 函数把表单和完整的博客文章列表传给模板，文章列表按照时间戳进行降序排序，博客文章表单采取了惯常的处理方式，如果提交的数据通过
 # 验证就创建一个新的Post实例。在发表文章之前，要检查当前用户是否有写文章的权限。
+'''
+决定显示所有博客文章还是只显示关注用户文章的选项存储在cookie的show_follow字段中.如果其值是非空字符串.则表示只显示所关注用户的文章.
+cookie以request.cookie字典的形式存储在请求对象中,这个cookie的值会转换成布尔值,根据得到的值设定本地变量query的值.
+query决定了最终获取所有博客文章的查询.或是获取过滤后的博客文章查询.显示所有用户的文章时要使用顶级查询,Post.quer: 如果限制只显示关注用户
+的文章,要使用最近添加的User.followed_posts属性,然后将本地变量query中保存的查询进行分页.像往常一样将其传入模板.
+'''
 
 
 @main.route('/', methods=["GET", "POST"])
@@ -19,14 +25,22 @@ def index():
         post = Post(body=form.body.data, author=current_user._get_current_object())
         db.session.add(post)
         return redirect(url_for('.index'))
-#    posts = Post.query.order_by(Post.timestamp.desc()).all()
+    # posts = Post.query.order_by(Post.timestamp.desc()).all()
     # 渲染的页数从请求的查询字符串(requset.args)中获取，如果没有明确指定，则默认渲染第一页，参数type=int保证参数无法转换成整数时，返回默认值。
     page = request.args.get('page', 1, type=int)
-    pagination = Post.query.order_by(Post.timestamp.desc()).paginate(
+    show_followed = False
+    if current_user.is_authenticated:
+        show_followed = bool(request.cookies.get('show_followed'))
+    if show_followed:
+        query = current_user.followed_posts
+    else:
+        query = Post.query
+    pagination = query.order_by(Post.timestamp.desc()).paginate(
         page, per_page=current_app.config['FLASK_POSTS_PER_PAGE'],
         error_out=False)
     posts = pagination.items
-    return render_template('index.html', form=form, posts=posts, pagination=pagination)
+    return render_template('index.html', form=form, posts=posts,
+                           show_followed=show_followed, pagination=pagination)
 
 '''
 注意：新文章对象的anthor属性值为表达式current_user.get_current_object()。变量current_user由Flask-Login提供，和所有上下文变量一样，
@@ -36,6 +50,28 @@ _get_current_object()方法。
 这个表单显示在index.html模板中欢迎消息的下方，其后是博客文章列表，在这个博客文章列表中，首次尝试创建博客文章时间轴，按照时间顺序由新到旧
 列出数据库中所有的博客文章，对模板所做的改动如下。
 '''
+
+# 指向这两个路由的链接添加到模板中,点击这两个链接会为 show_followed cookie 设定适当的值.然后重定向到首页.
+# cookie 只能在响应对象中设置,因此这两个路由不能依赖Flask,要使用make_response()方法创建响应对象.
+
+# set-cookie()函数的前两个参数分别是cookie名和值.可选的max_age参数设置cookie的过期时间,单位是秒.如果不指定参数,浏览器关闭后cookie就
+# 会过期,本例中,过期时间是三十天.所以即便过几天用户不访问程序,浏览器会记住设定的值.
+
+
+@main.route('/all')
+@login_required
+def show_all():
+    resp = make_response(redirect(url_for('.index')))
+    resp.set_cookie('show_followed', '', max_age=30*24*60*60)
+    return resp
+
+
+@main.route('/followed')
+@login_required
+def show_followed():
+    resp = make_response(redirect(url_for('.index')))
+    resp.set_cookie('show_followed', "1", max_age=30*24*60*60)
+    return resp
 
 
 ''' 为每个用户创建资料页面, 这个路由在main蓝本中添加,对于名为 john的用户,其资料页面的地址是 http://localhost:5000/user/john.

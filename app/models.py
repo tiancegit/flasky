@@ -264,7 +264,7 @@ class User(UserMixin, db.Model):
         db.session.add(self)
         return True
 
-    # Uesr类的构造函数首先调用鸡肋的构造函数,如果创建基类对象后还没定义角色,
+    # Uesr类的构造函数首先调用基类的构造函数,如果创建基类对象后还没定义角色,
     # 则根据电子邮件地址决定将其设为管理员或者默认角色
 
     def __init__(self, **kwargs):
@@ -277,7 +277,7 @@ class User(UserMixin, db.Model):
         # 模型初始化的过程中会计算电子邮件的散列值，然后存入数据库。
         if self.email is not None and self.avatar_hash is None:
             self.avatar_hash = hashlib.md5(self.email.encode('utf-8')).hexdigest()
-
+        self.follow(self)  # 注册时把用户设为自己的关注者.  但数据库中已经创建了一些用户,而且没有关注自己,可以添加一个函数,更新现有用户.
     # 为了简化角色和权限的实现过程,可在User模型中添加一个辅助方法,检查是否有指定的权限.
     # 检查用户是否有指定的权限.
 
@@ -378,6 +378,18 @@ class User(UserMixin, db.Model):
         # 用户的邮箱地址，和用户名必须是唯一的，但forgeryPy随机生成信息，用重复的风险，虽然出现的几率很小，提交数据库时会抛出异常。
         # 处理方式是，在继续操作之前回滚会话，在循环中生成重复内容时不把用户写入数据库。因此生成的虚拟用户总数可能会比预期的少。
 
+    """这个函数用于自动更新数据库中已有的数据,把用户自己关注自己的账号.创建函数更新数据库技术经常用于更新已经部署的程序,
+    因为运行脚本更行比手动更新数据库更少出错."""
+    # 有一定的副作用,用户资料显示的关注者和被关注者的数量都增加了一个.为了显示准确,这些数字要减去1.例如{{ user.followers.count() - 1 }}
+
+    @staticmethod
+    def add_self_follows():
+        for user in User.query.all():
+            if not user.is_following(user):
+                user.follow(user)
+                db.session.add(user)
+                db.session.commit()
+
 
 # '文章模型,博客文章包括正文,时间戳,已经和User模型的一对多关系,body字段的定义类型是db.Text,所以不限制长度.' \
 # '在程序的首页要显示一个表单,以便让用户写博客,有一个多行文本输入框,用于输入博客文章的内容,还有一个提交按钮'
@@ -426,9 +438,27 @@ clean函数删除所有不在白名单中的标签，转换的最后一步，由
 最后，如果post.body.html字段存在，还要把post.body换成post.body_html'''
 
 
-# on_changed_body函数注册在body字段上，是SQLALchemy “set” 事件的监听程序，只要这个类实例设了新值，函数会自动被调用，
+# on_changed_body函数注册在body字段上，是SQLalchemy “set” 事件的监听程序，只要这个类实例设了新值，函数会自动被调用，
 # 函数把body字段的文本渲染成HTML格式，结果保存在body_html中，自动且高效完成Markdown文本到HTML的转换。
 
+
+"""
+评论和博客文章没有太大区别,都有正文,作者,和时间戳.只是这个特定实现中都使用Markdown语法编写.评论属于某篇博客文章,因此定义一个从post表到
+comments表的一对多关系.使用这个关系可以获取某篇特定特定博客文章的评论列表.
+
+comments表还和user表有一对多关系,通过这个关系可以获取用户发表的所有评论,还能间接知道用户发表多少篇评论,用户发表的评论数量可以显示在用户资料页面中.
+"""
+
+
+class Commment(db.Model):
+    __tablename__ = 'comments'
+    id = db.Column(db.Integer, primary_key=True)
+    body = db.Column(db.Text)
+    body_html = db.Column(db.Text)
+    timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
+    disabled = db.Column(db.Boolean)
+    author_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    post_id = db.Column()
 
 # 出于一致性考虑,定义了 AnonymousUser 类,并实现了 can() 和 is_administrator()方法
 # 这个对象继承自 AnonymousUserMixin类,并将其设为用户未登录是 current_user的值.这样程序不用先
