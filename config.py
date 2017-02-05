@@ -18,7 +18,9 @@ class Config:
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')  # 可以使用脚本从环境中导入敏感信息
     # app.config["MAIL_USE_SSl"] = True  #这是需要 SSL协议的设置，不需要：详细见https://support.google.com/a/answer/176600?hl=zh-Hans
     # 首页文章每页显示的记录
-    FLASK_POSTS_PER_PAGE = 10
+    FLASKY_POSTS_PER_PAGE = 10
+    # 每页显示的评论数量
+    FLASKY_COMMENTS_PER_PAGE = 10
     # 关注的每页显示的记录数目
     FLASKY_FOLLOWERS_PER_PAGE = 10
     # 配置参数, 使用本地的Bootstrap资源.

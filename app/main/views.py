@@ -3,10 +3,10 @@ from flask import render_template, redirect, url_for, current_app, abort, flash,
 from flask_login import login_required, current_user
 
 from . import main
-from .forms import EditProfileForm, EditProfileAdminForm, PostFrom
+from .forms import EditProfileForm, EditProfileAdminForm, PostFrom, CommentForm
 from .. import db
 from ..decorators import admin_required, permission_required
-from ..models import User, Role, Permission, Post
+from ..models import User, Role, Permission, Post, Comment
 
 # 函数把表单和完整的博客文章列表传给模板，文章列表按照时间戳进行降序排序，博客文章表单采取了惯常的处理方式，如果提交的数据通过
 # 验证就创建一个新的Post实例。在发表文章之前，要检查当前用户是否有写文章的权限。
@@ -36,7 +36,7 @@ def index():
     else:
         query = Post.query
     pagination = query.order_by(Post.timestamp.desc()).paginate(
-        page, per_page=current_app.config['FLASK_POSTS_PER_PAGE'],
+        page, per_page=current_app.config['FLASKY_POSTS_PER_PAGE'],
         error_out=False)
     posts = pagination.items
     return render_template('index.html', form=form, posts=posts,
@@ -160,7 +160,39 @@ def edit_profile_admin(id):
 @main.route('/post/<int:id>')
 def post(id):
     post = Post.query.get_or_404(id)
-    return render_template('post.html', posts=[post])
+    form = CommentForm()
+    if form.validate_on_submit():
+        comment = Comment(body=form.body.data,
+                          post=post,
+                          author=current_user._get_current_object())
+        db.session.add(comment)
+        flash('You comment has been published.')
+        return redirect(url_for('.post', id=post.id, page=-1))
+    page = request.args.get('page', 1, type=int)
+    if page == -1:
+        page = (post.comments.counts() - 1) / \
+            current_app.config['FLASKY_COMMENTS_PER_PAGE'] + 1
+    pageination = post.comments.order_by(Comment.timestamp.asc()).paginate(
+        page, per_page=current_app.config['FLASKY_CMMENTS_PER_PAGE'],
+        error_out=False)
+    comments = pageination.items
+    return render_template('post.html', posts=[post], form=form,
+                           comments=comments, pagination=pageination)
+
+'''
+实例化了一个评论表单,并将其传入post.html模板中,以便渲染,提交表单后,插入新评论的逻辑和处理博客文章的过程差不多,和post模型一样,评论的author
+字段也不能直接设为current_user,因为这个变量是上下文代理对象,真正的User对象要使用表达式current_user._get_current_object()获取.
+
+评论按照时间戳顺序排列,新评论显示咋爱列表的底部,提交评论后,请求结果是一个重定向,转回之前的URL, 但在url_for()函数的参数中把page设为-1,
+这是一个特殊的页数,用于请求评论的最好一页,所以刚才提交的评论才会出现在页面中,程序从查询字符串中获取页数,发现值为-1时, 会计算评论的总量和
+总页数,得出真正要显示的页数.
+
+    文章的评论列表通过post.comments 一对多关系获取,按照时间戳顺序进行排列,再使用与博客文章相应的技术进行分页显示,评论列表和分页对象都传入了模板,
+以便渲染,FLASKY_COMMENTS_PER_PAGE配置变量也要加入config.py中,用于控制每页显示的评论数量.
+
+评论的渲染过程在新模板_comments.html中进行,类似于_posts.html,但使用的CSS类有所不同,_comments.html模板要引入post.html中,放在文章的正下方,
+后面在显示分页导航,可以在git checkout 13a签出对模板进行的改动.
+'''
 
 # 视图函数的作用是只允许博客文章的作者编辑文章，但管理员例外，管理员能编辑所有用户的文章，如果用户试图编辑其它用户的文章，视图函数会返回403错误，
 # 这个使用的post表单和首页用的是同一个。

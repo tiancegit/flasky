@@ -118,6 +118,8 @@ class User(UserMixin, db.Model):
     last_seen = db.Column(db.DateTime(), default=datetime.utcnow())
     avatar_hash = db.Column(db.String(32))   # 生成头像时生成MD5值，计算量会非常大，由于用户的邮件地址的MD5值是不变的。可以保存在数据库中。
     posts = db.relationship("Post", backref="author", lazy="dynamic")  # 这是和Post模型之间的一对多关系。
+    # User模型与comments表的一对多关系
+    comments = db.relationship('Comment', backref='post', lazy='dynamic')
 
     # last_seen字段创建时的初始值也是当前时间,但用户每次访问网站后,这个值都会被刷新,在user模型添加一个方法去完成这个操作.
 
@@ -402,6 +404,8 @@ class Post(db.Model):
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
     author_id = db.Column(db.Integer, db.ForeignKey("users.id"))
     body_html = db.Column(db.Text)
+    # Post模型和Comments 表的一对多关系.
+    comments = db.relationship('Comment', backref='post', lazy='dynamic')
 
     # 随机生成文章的时要为每篇文章随机指定一个用户，为此，我们使用offset()查询过滤器，这个过滤器会跳过参数中指定的记录数量，通过设定一个随机的
     # 偏移值，再调用first()方法，就能每次都能获得一个不同的随机用户。
@@ -447,10 +451,19 @@ clean函数删除所有不在白名单中的标签，转换的最后一步，由
 comments表的一对多关系.使用这个关系可以获取某篇特定特定博客文章的评论列表.
 
 comments表还和user表有一对多关系,通过这个关系可以获取用户发表的所有评论,还能间接知道用户发表多少篇评论,用户发表的评论数量可以显示在用户资料页面中.
+
+Comments模型的属性几乎和Post模型一样,不过多了多了一个disabled字段, 这是个布尔值字段,协管员可以通过这个字段查禁不当言论,和博客文章一样,
+评论也定义了一个事件,在修改body字段的内容时触发,自动把markdown文本转换成HTML,装换过程和第十一章的博客文章一样,不过评论相对较短,而且对
+markdown中允许使用的HTML标签要求还要严格,要删除段落相关的标签,自留下格式化字符串的标签,
+
+为了完成对数据库的修改,User模型和Post模型还要建立与与comments 表的一对多关系,
+
+comments = db.relationship('Comment', backref='author', lazy='dynamic')
+comments = db.relationship('Comment', backref='author', lazy='dynamic')
 """
 
 
-class Commment(db.Model):
+class Comment(db.Model):
     __tablename__ = 'comments'
     id = db.Column(db.Integer, primary_key=True)
     body = db.Column(db.Text)
@@ -458,7 +471,15 @@ class Commment(db.Model):
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
     disabled = db.Column(db.Boolean)
     author_id = db.Column(db.Integer, db.ForeignKey('users.id'))
-    post_id = db.Column()
+    post_id = db.Column(db.Integer, db.ForeignKey('posts_id'))
+
+    @staticmethod
+    def on_changed_body(target, value, oldvalue, initiator):
+        allowed_tags = ['a', 'abbr', 'acronym', 'b', 'code', 'em', 'i', 'strong']
+        target.body_html = bleach.linkify(bleach.clean(markdown(value, output_format='html'),
+                                                       tags=allowed_tags, strip=True))
+
+db.event.listen(Commment.body, 'set', Commment.on_changed_body)
 
 # 出于一致性考虑,定义了 AnonymousUser 类,并实现了 can() 和 is_administrator()方法
 # 这个对象继承自 AnonymousUserMixin类,并将其设为用户未登录是 current_user的值.这样程序不用先
