@@ -34,7 +34,7 @@
                 <span class="label label-default">Permalink</span>
             </a>
 {# 链接文本中显示评论数量的方法，评论数量可以使用SQLAlchemy 提供的count()过滤器轻易的从post和comments表的一对多关系获取。 #}
-            <a href="{{ url_for('.post', id=post.id) }}"#comments>
+            <a href="{{ url_for('.post', id=post.id) }}#comments">
                 <span class="label label-primary">{{ post.comments.count() }} Comments</span>
             </a>
             </div>
@@ -53,4 +53,4 @@ Markdown转换成的HTML在服务器上生成的，因此可以放心渲染。#}
 {# 指向评论页的链接结构，这个链接的地址是在文章的固定链接后面加上一个 #comments 后缀，这个后缀称为URL片段，用于指定加载页面后，
 滚动条所在的初始位置。 Web浏览器会寻找id等于URL片段的元素并滚动页面，让这个元素显示在窗口顶部，这个初始位置被设为post.html模板中评论区的标题，
 既是<h4 id='comments'>Comments<h4>。  除此之外，分页导航所用的宏也要做些修改， 评论的分页导航链接也要加上 # comments 片段，因此在
-post.html 模板中调用宏的时，传入片段参数。#}
+post.html 模板中调用宏的时， 传入片段参数。#}
