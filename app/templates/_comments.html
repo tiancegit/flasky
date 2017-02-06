@@ -2,7 +2,7 @@
     {% for comment in comments %}
     <li class="comment">
         <div class="comment-thumbnail">
-            <a href="{{ url_for(.user, username=comment.author.username) }}">
+            <a href="{{ url_for('.user', username=comment.author.username) }}">
                 <img class="img-rounded profile-thumbnail" src="{{ comment.author.gravatar(size=40) }}">
             </a>
         </div>

@@ -9,8 +9,7 @@ from itsdangerous import TimedJSONWebSignatureSerializer as Serializer    # 使�
 from markdown import markdown
 from werkzeug.security import generate_password_hash, check_password_hash
 
-from . import db
-from . import login_manager
+from . import db, login_manager
 
 '''
 数据库模型
@@ -29,6 +28,14 @@ from . import login_manager
 '''
 
 
+class Permission:
+    FOLLOW = 0X01
+    COMMENT = 0X02
+    WRITE_ARTICLES = 0X04
+    MODERATE_COMMENTS = 0X08
+    ADMINISTER = 0X80
+
+
 # 这是关联表
 
 
@@ -37,14 +44,6 @@ class Follow(db.Model):
     follower_id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)
     followed_id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
-
-
-class Permission:
-    FOLLOW = 0X01
-    COMMENT = 0X02
-    WRITE_ARTICLES = 0X04
-    MODERATE_COMMENTS = 0X08
-    ADMINISTER = 0X80
 
 
 class Role(db.Model):   # 定义数据库模型
@@ -119,7 +118,7 @@ class User(UserMixin, db.Model):
     avatar_hash = db.Column(db.String(32))   # 生成头像时生成MD5值，计算量会非常大，由于用户的邮件地址的MD5值是不变的。可以保存在数据库中。
     posts = db.relationship("Post", backref="author", lazy="dynamic")  # 这是和Post模型之间的一对多关系。
     # User模型与comments表的一对多关系
-    comments = db.relationship('Comment', backref='post', lazy='dynamic')
+    comments = db.relationship('Comment', backref='author', lazy='dynamic')
 
     # last_seen字段创建时的初始值也是当前时间,但用户每次访问网站后,这个值都会被刷新,在user模型添加一个方法去完成这个操作.
 
@@ -471,7 +470,7 @@ class Comment(db.Model):
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
     disabled = db.Column(db.Boolean)
     author_id = db.Column(db.Integer, db.ForeignKey('users.id'))
-    post_id = db.Column(db.Integer, db.ForeignKey('posts_id'))
+    post_id = db.Column(db.Integer, db.ForeignKey('posts.id'))
 
     @staticmethod
     def on_changed_body(target, value, oldvalue, initiator):
@@ -479,7 +478,7 @@ class Comment(db.Model):
         target.body_html = bleach.linkify(bleach.clean(markdown(value, output_format='html'),
                                                        tags=allowed_tags, strip=True))
 
-db.event.listen(Commment.body, 'set', Commment.on_changed_body)
+db.event.listen(Comment.body, 'set', Comment.on_changed_body)
 
 # 出于一致性考虑,定义了 AnonymousUser 类,并实现了 can() 和 is_administrator()方法
 # 这个对象继承自 AnonymousUserMixin类,并将其设为用户未登录是 current_user的值.这样程序不用先
