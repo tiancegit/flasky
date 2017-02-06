@@ -7,9 +7,10 @@ basedir = os.path.abspath(os.path.dirname(__file__))  # 获取文件路径
 class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'lee'   # 防止跨域攻击的加密字符串.
     SQLALCHEMY_COMMIT_ON_TEARDOWN = True
+    SQLALCHEMY_TRACK_MODIFICATIONS = True
     FLASKY_MAIL_SUBJECT_PREFIX = '[Flasky]'
     FLASKY_MAIL_SENDER = 'Flasky Admin <flasky@example.com>'
-    FLASKY_ADMIN = os.environ.get("FLASKY_ADMIN") or '1259749312@qq.com'  # 这是管理员邮箱,只要当这个地址出现在注册请求中,就会被赋予正确的角色.
+    FLASKY_ADMIN = os.environ.get("FLASKY_ADMIN") or 'li.guo.guang@qq.com'  # 这是管理员邮箱,只要当这个地址出现在注册请求中,就会被赋予正确的角色.
     # 邮件配置
     MAIL_SERVER = 'smtp.googlemail.com'
     MAIL_PORT = '587'
@@ -21,6 +22,7 @@ class Config:
     FLASKY_POSTS_PER_PAGE = 10
     # 每页显示的评论数量
     FLASKY_COMMENTS_PER_PAGE = 10
+
     # 关注的每页显示的记录数目
     FLASKY_FOLLOWERS_PER_PAGE = 10
     # 配置参数, 使用本地的Bootstrap资源.

@@ -278,7 +278,7 @@ class User(UserMixin, db.Model):
         # 模型初始化的过程中会计算电子邮件的散列值，然后存入数据库。
         if self.email is not None and self.avatar_hash is None:
             self.avatar_hash = hashlib.md5(self.email.encode('utf-8')).hexdigest()
-        self.follow(self)  # 注册时把用户设为自己的关注者.  但数据库中已经创建了一些用户,而且没有关注自己,可以添加一个函数,更新现有用户.
+        self.followed.append(Follow(followed=self))  # 注册时把用户设为自己的关注者.  但数据库中已经创建了一些用户,而且没有关注自己,可以添加一个函数,更新现有用户.
     # 为了简化角色和权限的实现过程,可在User模型中添加一个辅助方法,检查是否有指定的权限.
     # 检查用户是否有指定的权限.
 

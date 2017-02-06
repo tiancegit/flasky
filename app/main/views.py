@@ -157,7 +157,7 @@ def edit_profile_admin(id):
 可读性和浏览引擎的收录都可以很优。'''
 
 
-@main.route('/post/<int:id>')
+@main.route('/post/<int:id>', methods=['GET', 'POST'])
 def post(id):
     post = Post.query.get_or_404(id)
     form = CommentForm()
@@ -170,14 +170,14 @@ def post(id):
         return redirect(url_for('.post', id=post.id, page=-1))
     page = request.args.get('page', 1, type=int)
     if page == -1:
-        page = (post.comments.counts() - 1) / \
+        page = (post.comments.count() - 1) // \
             current_app.config['FLASKY_COMMENTS_PER_PAGE'] + 1
-    pageination = post.comments.order_by(Comment.timestamp.asc()).paginate(
-        page, per_page=current_app.config['FLASKY_CMMENTS_PER_PAGE'],
+    pagination = post.comments.order_by(Comment.timestamp.asc()).paginate(
+        page, per_page=current_app.config['FLASKY_COMMENTS_PER_PAGE'],
         error_out=False)
-    comments = pageination.items
+    comments = pagination.items
     return render_template('post.html', posts=[post], form=form,
-                           comments=comments, pagination=pageination)
+                           comments=comments, pagination=pagination)
 
 '''
 实例化了一个评论表单,并将其传入post.html模板中,以便渲染,提交表单后,插入新评论的逻辑和处理博客文章的过程差不多,和post模型一样,评论的author
