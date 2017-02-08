@@ -18,9 +18,6 @@
                 {% endif %}
             </div>
             <div class="post-footer">
-                <a href="{{ url_for('.post', id=post.id) }}">
-                    <span class="label label-default">Permalink</span>
-                </a>
                 {% if current_user == post.author %}
                     <a href="{{ url_for('.edit', id=post.id) }}">
                         <span class="label label-primary">Edit</span>

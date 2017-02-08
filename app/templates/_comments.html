@@ -16,13 +16,32 @@
                 </a>
             </div>
             <div class="comment-body">
+            {% if comment.disqabled %}
+            <p><i>This comment has been disable by a moderator.</i></p>
+            {% endif %}
+            {% if moderate or not comment.disaled %}
                 {% if comment.body_html %}
                 {{ comment.body_html | safe }}
                 {% else %}
                 {{ comment.body }}
                 {% endif %}
+            {% endif %}
             </div>
+        {% if moderate %}
+        <br />
+        {% if comment.disavled %}
+        <a class="btn btn-default btn-xs" href="{{ url_for('.moderate_enable', id=comment.id, page=page) }}">Enable</a>
+        {% else %}
+        <a class="btn btn-danger btn-xs" href="{{ url_for('.moderate_enable', id=comment.id, page=page) }}">Disable</a>
+        {% endif %}
+        {% endif %}
         </div>
     </li>
     {% endfor %}
 </ul>
+
+
+{# _comments.html 模板显示评论正文部分要做两方面修改，对于普通用（没设定 moderate 变量），不显示标记为有 问题的评论，对于协管员
+（moderate）设为了True,不管是否标记为有问题，都要显示，而且在正文下方还有显示一个用来切换状态的按钮。
+用户将看到一个有关于问题评论的简短提示，协管员既能看到这个提示，也能看到正文，在每个评论的下方，协管员还能看到一个按钮，用于切换评论状态，
+点击按钮后，会触发两个新路由中的一个，但具体触发哪一个取决于协管员要把评论设为什么状态。两个新路由的定义如下。#}

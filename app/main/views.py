@@ -294,6 +294,56 @@ def followed_by(username):
                            follows=follows)
 
 
+'''
+在第九章定义了几个用户角色，分别具有不同的权限，其中一个权限是Permission.MODERATE_COMMENTS, 拥有此权限的用户可以管理其他用户的评论。
+
+为了管理评论，要在导航条中添加一个链接，具有权限的用户才可以看到，这个链接在base模板中使用条件语句添加。
+
+管理页面在同一个列表中显示全部文章的评论，最近发表的评论会显示在前面，每篇评论的下方都会显示一个按钮，用来切换disabled属性的值。/moderate
+路由的定义如下。
+这个函数从数据库读取一页评论，将其传入模板进行渲染，除了评论列表之外，还把分页对象和当前页数传入了模板。
+moderate.html模板也是比较简单。因为它依靠之前创建的子模板_comments.html渲染评论。
+'''
+
+
+@main.route('/moderate')
+@login_required
+@permission_required(Permission.MODERATE_COMMENTS)
+def moderate():
+    page = request.args.get('page', 1, type=int)
+    pagination = Comment.query.order_by(Comment.timestamp.desc()).paginate(
+        page, per_page=current_app.config['FLASKY_COMMENTS_PER_PAGE'], error_out=False)
+    comments = pagination.items
+    return render_template('moderate.html', comments=comments,
+                           pagination=pagination, page=page)
+
+'''
+下述启用路由和禁用路由先加载评论对象，把disable字段设为正确的值，再把评论对象写入数据库，最后重定向到评论管理页面，如果查询字符串中指定了
+page参数，会将其传入重定向操作。_comments.html 模板中的按钮指定了page参数，重定向会返回之前的页面。
+'''
+
+
+@main.route('/moderate/enable/<int:id>')
+@login_required
+@permission_required(Permission.MODERATE_COMMENTS)
+def moderate_enable(id):
+    comment = Comment.query.get_or_404(id)
+    comment.disabled = False
+    db.session.add(comment)
+    return redirect(url_for('.moderate', page=request.args.get('page', 1, type=int)))
+
+
+@main.route('/moderate/disable/<int:id>')
+@login_required
+@permission_required(Permission.MODERATE_COMMENTS)
+def moderate_disable(id):
+    comment = Comment.query.get_or_404(id)
+    comment.disabled = True
+    db.session.add(comment)
+    return redirect(url_for('.moderate', page=request.args.get('page', 1, type=int)))
+
+
+
 
 
 '''
